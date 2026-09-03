@@ -109,7 +109,8 @@ public final class ChillZoneModeration implements ModInitializer {
                         // Keep the URL visible as plain text if the configured invite is invalid.
                     }
 
-                    MutableComponent message = intro.append(link);\n                    ctx.getSource().sendSuccess(() -> message, false);
+                    MutableComponent message = intro.append(link);
+                    ctx.getSource().sendSuccess(() -> message, false);
                     return 1;
                 }));
 
