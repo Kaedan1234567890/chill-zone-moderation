@@ -1,4 +1,4 @@
-# Chill Zone Moderation 0.1.0-alpha
+# Chill Zone Moderation 0.1.1-alpha
 
 Commands:
 - `/warn <player> <reason>`
@@ -39,3 +39,10 @@ LuckPerms:
 
 Note:
 This alpha uses `/czban` and `/czunban` rather than overriding vanilla `/ban` and `/pardon`, to avoid command conflicts while testing.
+
+## 0.1.1-alpha
+- Clickable Discord appeal URL on Java clients when supported.
+- URL remains visible as fallback.
+- Warn, temp-ban, permanent-ban, unban, and warning-history commands now work on known offline players.
+- Offline targets must have joined Chill Zone SMP at least once so the server knows their UUID/profile.
+- Offline bans take effect the next time the player joins.
