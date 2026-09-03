@@ -95,6 +95,24 @@ public final class ChillZoneModeration implements ModInitializer {
                         return 1;
                     })));
 
+            dispatcher.register(Commands.literal("discord")
+                .executes(ctx -> {
+                    MutableComponent intro = Component.literal("Join the Chill Zone SMP Discord: ");
+                    MutableComponent link = Component.literal(config.discordInvite);
+
+                    try {
+                        link = link.withStyle(style ->
+                            style.withUnderlined(true)
+                                .withClickEvent(new ClickEvent.OpenUrl(URI.create(config.discordInvite)))
+                        );
+                    } catch (Exception ignored) {
+                        // Keep the URL visible as plain text if the configured invite is invalid.
+                    }
+
+                    ctx.getSource().sendSuccess(() -> intro.append(link), false);
+                    return 1;
+                }));
+
             dispatcher.register(Commands.literal("tempban")
                 .requires(s -> Permissions.has(s, Permissions.TEMPBAN))
                 .then(Commands.argument("player", StringArgumentType.word())
