@@ -1,0 +1,29 @@
+Chill Zone Moderation 0.2.0-alpha-punishments
+
+Added:
+- /tempban <player> <offence> preset workflow with known/offline player autocomplete.
+- Preset offence autocomplete includes duration tooltips.
+- Presets: flying 3d, xray 7d, combat 7d, godmode 7d, duping 14d,
+  major_griefing 7d, minor_griefing 1d, event_disruption 3d, harassment 3d,
+  chat_spam 12h, ban_evasion 14d, severe_exploiting 14d.
+- Stealing intentionally NOT included.
+- Hacking requires one or more hack types: e.g.
+  /tempban Player hacking flying,phase_noclip,godmode
+  Hacking preset duration: 7d.
+- Custom punishment:
+  /tempban Player other 5d Custom reason here
+- /punishments and /punishments <player> show active ban type, reason,
+  remaining time, and issuing moderator.
+- /unban <player> and existing /czunban <player> clear both temp/permanent bans.
+- /czban and /ban support reason autocomplete while still allowing custom text.
+- Known-player suggestions use online players + vanilla usercache.json, so offline
+  players who previously joined can be selected.
+
+Existing LuckPerms nodes preserved:
+  chillzonemoderation.tempban
+  chillzonemoderation.ban
+  chillzonemoderation.unban
+  chillzonemoderation.warnings  (also gates /punishments)
+
+NOTE: /sus anti-cheat/reporting changes are intentionally NOT part of this build;
+that was planned as the next moderation update after the punishment workflow.

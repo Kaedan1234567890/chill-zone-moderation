@@ -59,6 +59,10 @@ public final class ModerationStore {
         return records.get(uuid);
     }
 
+    public Collection<PunishmentRecord> all() {
+        return new ArrayList<>(records.values());
+    }
+
     private static Path file() {
         return FabricLoader.getInstance().getConfigDir().resolve("chill-zone-moderation-data.json");
     }

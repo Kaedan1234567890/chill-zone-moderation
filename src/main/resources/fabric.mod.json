@@ -3,7 +3,7 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Warnings, temporary bans, permanent bans, and custom appeal disconnect messages.",
+  "description": "Warnings, preset temporary bans, permanent bans, unbans, punishment history, and custom appeal disconnect messages.",
   "authors": ["Chill Zone SMP"],
   "environment": "server",
   "entrypoints": {
