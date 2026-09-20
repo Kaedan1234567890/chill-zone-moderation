@@ -54,7 +54,7 @@ public final class ChillZoneModeration implements ModInitializer {
     };
     private static final SuggestionProvider<CommandSourceStack> HACKS = (ctx, b) -> {
         for (String h : HACK_TYPES) b.suggest(h);
-        b.suggest("flying,xray"); b.suggest("flying,phase_noclip,godmode");
+        b.suggest("flying,xray"); b.suggest("flying,speed_movement"); b.suggest("flying,speed_movement,phase_noclip"); b.suggest("flying,speed_movement,godmode"); b.suggest("flying,speed_movement,phase_noclip,godmode"); b.suggest("flying,phase_noclip,godmode");
         return b.buildFuture();
     };
     private static final SuggestionProvider<CommandSourceStack> BAN_REASONS = (ctx, b) -> {
@@ -98,6 +98,7 @@ public final class ChillZoneModeration implements ModInitializer {
             registerBan(dispatcher, "ban");
             registerUnban(dispatcher, "czunban");
             registerUnban(dispatcher, "unban");
+            registerUntempban(dispatcher);
 
             dispatcher.register(Commands.literal("punishments").requires(s -> Permissions.has(s, Permissions.WARNINGS))
                 .executes(ctx -> showPunishments(ctx.getSource(), null))
@@ -109,6 +110,7 @@ public final class ChillZoneModeration implements ModInitializer {
 
     private static void registerBan(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d,String root){ d.register(Commands.literal(root).requires(s->Permissions.has(s,Permissions.BAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(KNOWN_PLAYERS).then(Commands.argument("reason",StringArgumentType.greedyString()).suggests(BAN_REASONS).executes(ctx->{ServerPlayer staff=ctx.getSource().getPlayerOrException();var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;String reason=StringArgumentType.getString(ctx,"reason");var r=store.getOrCreate(t.uuid(),t.name());var b=new PunishmentRecord.BanEntry();b.reason=reason;b.staff=staff.getGameProfile().name();b.issuedAt=System.currentTimeMillis();b.expiresAt=0;r.ban=b;store.save();if(t.onlinePlayer()!=null)t.onlinePlayer().connection.disconnect(banMessage(r));ctx.getSource().sendSuccess(()->Component.literal("Permanently banned "+t.name()+". Reason: "+reason),false);return 1;})))); }
     private static void registerUnban(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d,String root){d.register(Commands.literal(root).requires(s->Permissions.has(s,Permissions.UNBAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(BANNED_PLAYERS).executes(ctx->{var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;var r=store.get(t.uuid());if(r!=null){r.ban=null;store.save();}ctx.getSource().sendSuccess(()->Component.literal("Unbanned "+t.name()+"."),false);return 1;})));}
+    private static void registerUntempban(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d){d.register(Commands.literal("untempban").requires(s->Permissions.has(s,Permissions.UNBAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(BANNED_PLAYERS).executes(ctx->{var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;var r=store.get(t.uuid());if(r==null||r.ban==null){ctx.getSource().sendFailure(Component.literal(t.name()+" is not currently banned."));return 0;}if(r.ban.expiresAt==0){ctx.getSource().sendFailure(Component.literal(t.name()+" has a permanent ban. Use /unban instead."));return 0;}r.ban=null;store.save();ctx.getSource().sendSuccess(()->Component.literal("Removed temporary ban for "+t.name()+"."),false);return 1;})));}
 
     private static int presetTempban(CommandSourceStack src,String player,String offence,String details){
         if(offence.equalsIgnoreCase("hacking")){src.sendFailure(Component.literal("Hacking requires hack type(s), e.g. /tempban "+player+" hacking flying,phase_noclip,godmode"));return 0;}

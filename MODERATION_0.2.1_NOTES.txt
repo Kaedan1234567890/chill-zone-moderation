@@ -1,0 +1,7 @@
+Chill Zone Moderation 0.2.1
+
+Changes from 0.2.0-alpha-punishments:
+- Added /untempban <player>. It only removes active temporary bans. Permanent bans must still use /unban.
+- /untempban uses the existing chillzonemoderation.unban LuckPerms permission.
+- Expanded hacking autocomplete combinations, including flying + speed movement and combined flying/speed/phase/godmode options.
+- Existing individual hack types and comma-separated custom combinations remain supported.
