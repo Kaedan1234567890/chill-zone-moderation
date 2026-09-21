@@ -1,0 +1,9 @@
+Chill Zone Moderation 0.2.4 login blacklist FIX1
+
+Startup crash fix for Minecraft Java 26.2:
+- PlayerList.canPlayerLogin uses net.minecraft.server.players.NameAndId in 26.2.
+- Replaced the incorrect GameProfile login mixin parameter with NameAndId.
+- Blacklist lookup now uses nameAndId.id() to obtain the authenticated UUID.
+
+No command names were changed. /czban, /czunban, /tempban, and /untempban remain unchanged.
+All existing moderation features are preserved.
