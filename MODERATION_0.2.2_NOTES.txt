@@ -1,0 +1,16 @@
+Chill Zone Moderation 0.2.2 - Final Tempban System
+
+- Preset durations updated:
+  X-Ray 3d; Duping 14d; Severe Exploiting 14d; Major Griefing 2d;
+  Minor Griefing 12h; Spawn Killing 5h; Event Disruption 5d;
+  Harassment 1d; Chat/Spam 12h; Ban Evasion 14d.
+- Hacking alone = 7d base.
+- Hacking subtypes appear only when the selected offence is hacking.
+- Each selected hacking subtype adds +5d to the 7d base; duplicates do not stack.
+- God Mode renamed to Jesus Mode (Walking on Water).
+- Other/custom accepts arbitrary durations from 1 minute through 30 years.
+- Duration parser supports compound times (e.g. 2h30m, 3d12h), plus m/h/d/w/mo/y.
+- Non-hacking preset offences reject trailing hack details.
+- Temp-ban disconnect screen continues to show the stored reason and live time remaining.
+- /untempban retained.
+- /sus anti-cheat system intentionally NOT included yet.

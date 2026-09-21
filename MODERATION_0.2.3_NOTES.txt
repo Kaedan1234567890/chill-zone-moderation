@@ -1,0 +1,10 @@
+Chill Zone Moderation 0.2.3 - Mute System
+
+- Removed Chat / Spam Abuse from /tempban presets.
+- Added /mute <player> chat_spam => 12 hour mute.
+- Added /mute <player> other <duration> <reason> with 1 minute to 30 year custom durations.
+- Added /unmute <player>.
+- Muted players remain online and can use gameplay commands, but normal public chat messages are blocked.
+- Muted players see their reason and live remaining time when attempting to chat.
+- Mutes persist in the existing moderation data store across restarts.
+- New LuckPerms node: chillzonemoderation.mute

@@ -9,11 +9,19 @@ public final class PunishmentRecord {
     public String lastKnownName;
     public List<WarningEntry> warnings = new ArrayList<>();
     public BanEntry ban;
+    public MuteEntry mute;
 
     public static final class WarningEntry {
         public String reason;
         public String staff;
         public long issuedAt;
+    }
+
+    public static final class MuteEntry {
+        public String reason;
+        public String staff;
+        public long issuedAt;
+        public long expiresAt;
     }
 
     public static final class BanEntry {
