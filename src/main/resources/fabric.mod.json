@@ -3,16 +3,23 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Warnings, preset temporary bans, permanent bans, unbans, punishment history, and custom appeal disconnect messages.",
-  "authors": ["Chill Zone SMP"],
+  "description": "Chill Zone moderation with UUID login blacklist enforcement, temporary/permanent bans, warnings, mutes, punishment history, and appeal disconnect messages.",
+  "authors": [
+    "Chill Zone SMP"
+  ],
   "environment": "server",
   "entrypoints": {
-    "main": ["com.chillzone.moderation.ChillZoneModeration"]
+    "main": [
+      "com.chillzone.moderation.ChillZoneModeration"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "26.2",
     "fabric-api": "*",
     "luckperms": "*"
-  }
+  },
+  "mixins": [
+    "chill_zone_moderation.mixins.json"
+  ]
 }

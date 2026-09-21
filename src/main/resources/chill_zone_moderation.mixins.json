@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.chillzone.moderation.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "PlayerListBlacklistMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
