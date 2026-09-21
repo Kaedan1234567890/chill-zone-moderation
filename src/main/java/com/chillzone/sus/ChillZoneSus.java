@@ -51,7 +51,8 @@ public final class ChillZoneSus implements ModInitializer {
                     .executes(ctx -> {
                         ServerPlayer staff = ctx.getSource().getPlayerOrException();
                         ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
-                        String type = store.getOrCreate(target.getUUID(), target.getGameProfile().name()).diamond.suspicionScore > 0 ? "diamond" : "debris";
+                        var record = store.getOrCreate(target.getUUID(), target.getGameProfile().name());
+                        String type = record.illegalFlightAttempts > 0 ? "hacks" : (record.diamond.suspicionScore > 0 ? "diamond" : "debris");
                         SusMenu.openPlayer(staff, target, store, type);
                         return 1;
                     }))

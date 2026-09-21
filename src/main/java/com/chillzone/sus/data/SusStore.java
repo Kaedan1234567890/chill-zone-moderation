@@ -59,6 +59,10 @@ public final class SusStore {
         r.illegalFlightAttempts=0; r.preventedFlightAttempts=0; r.lastFlightAttemptEpochMs=0; r.successfulIllegalFlight=false;
     }
     public void clearCase(UUID uuid, String name, String type) { clearCase(getOrCreate(uuid,name).ore(type)); }
+    public void clearHackCase(UUID uuid, String name) {
+        SusRecord r=getOrCreate(uuid,name);
+        r.illegalFlightAttempts=0; r.preventedFlightAttempts=0; r.lastFlightAttemptEpochMs=0; r.successfulIllegalFlight=false;
+    }
     private static void clearCase(SusRecord.OreCase c) {
         c.archivedPoints += Math.max(0,c.suspicionScore); c.suspicionScore=0; c.activeFlags=0; c.lastFlagEpochMs=0;
         c.oreMined=0; c.separateVeins=0; c.veinTimes.clear(); c.recentIntervalsMs.clear(); c.lastVeinEpochMs=0; c.currentVeinId=0; c.currentVeinLastBreakMs=0;

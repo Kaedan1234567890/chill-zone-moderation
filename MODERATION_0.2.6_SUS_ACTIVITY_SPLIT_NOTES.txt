@@ -1,0 +1,12 @@
+Chill Zone Moderation 0.2.6 - SUS Activity Split
+
+- Keeps /czban, /czunban, /tempban and /untempban unchanged.
+- Keeps blacklist/login enforcement from 0.2.4/0.2.5.
+- Keeps existing SUS diamond and Ancient Debris detection.
+- Adds Hacks Activity as its own Live Stats/SUS case.
+- Fly/anti-fly data no longer appears on Diamond or Ancient Debris cases.
+- Hacks Activity shows only fly-hack evidence.
+- Players can appear in more than one activity category if they trigger more than one detector.
+- Clear This SUS Case clears only the selected activity category, including Hacks Activity.
+- /sus <player> prioritizes Hacks Activity when the player has recorded flight attempts.
+- Mining lore was shortened to fit the Minecraft inventory tooltip more cleanly.

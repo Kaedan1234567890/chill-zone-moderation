@@ -3,7 +3,7 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Chill Zone Moderation with bans, timed/permanent UUID blacklist enforcement, warnings, mutes, punishment history, merged SUS investigation, and always-on anti-fly evidence.",
+  "description": "Chill Zone Moderation with bans, timed/permanent UUID blacklist enforcement, warnings, mutes, punishment history, merged SUS investigation with separate Diamond, Ancient Debris and Hacks Activity reports, and always-on anti-fly evidence.",
   "authors": [
     "Chill Zone SMP"
   ],
