@@ -1,11 +1,11 @@
-Chill Zone Moderation 0.2.4 - Login Blacklist
+CHILL ZONE MODERATION 0.2.4 - LOGIN BLACKLIST
 
-- Command names preserved. /czban and /czunban are unchanged.
-- /tempban and permanent bans continue using the existing UUID punishment store.
-- Added a PlayerList login-gate blacklist check so an active ban rejects the UUID before world entry.
-- Temporary blacklist entries automatically expire when their punishment time expires.
-- /untempban removes a temporary blacklist entry.
-- /czunban removes a permanent blacklist entry.
-- Existing JOIN disconnect remains as a second failsafe.
-- Ban/temp-ban disconnect UI now explicitly includes Punished By, plus existing reason, remaining time (temp), Discord link, and appeal message.
-- Existing warnings, mute system, presets, punishment history, and autocomplete retained.
+- Version changed to 0.2.4-alpha-login-blacklist.
+- Existing command names are preserved, including /czban and /czunban.
+- /czban creates a permanent punishment that is enforced at the PlayerList login gate by UUID.
+- /tempban creates a timed punishment enforced by the same UUID login gate.
+- Expired temp bans are automatically cleared when the player next attempts to connect.
+- /czunban and /untempban clear the stored punishment, which removes the blacklist block.
+- The existing post-join disconnect check remains as a second failsafe.
+- Disconnect screen preserves reason, live remaining time for temp bans, Discord appeal information, and now explicitly shows Punished By.
+- Existing warnings, mutes, punishment history, offence presets, hack subtype combinations, and autocomplete are retained.

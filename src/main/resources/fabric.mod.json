@@ -3,7 +3,7 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Chill Zone moderation with UUID login blacklist enforcement, temporary/permanent bans, warnings, mutes, punishment history, and appeal disconnect messages.",
+  "description": "Warnings, mutes, preset temporary bans, permanent bans, UUID login blacklist enforcement, unbans, punishment history, and custom appeal disconnect messages.",
   "authors": [
     "Chill Zone SMP"
   ],

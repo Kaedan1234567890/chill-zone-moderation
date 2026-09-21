@@ -250,20 +250,23 @@ public final class ChillZoneModeration implements ModInitializer {
     private static void showRecord(CommandSourceStack src,PunishmentRecord r,String name,long now){if(r==null||r.ban==null){src.sendSuccess(()->Component.literal(name+" has no active ban."),false);return;}var b=r.ban;if(b.expiresAt>0&&b.expiresAt<=now){b=null;r.ban=null;store.save();src.sendSuccess(()->Component.literal(name+" has no active ban."),false);return;}String type=b.expiresAt==0?"PERMANENT BAN":"TEMP BAN";String time=b.expiresAt==0?"Permanent":TimeParser.formatRemaining(b.expiresAt-now);String line=name+" | "+type+" | Reason: "+b.reason+" | Time Left: "+time+" | By: "+b.staff;src.sendSuccess(()->Component.literal(line),false);}
     private static String prettyDuration(String d){if(d==null||d.length()<2)return d;String n=d.substring(0,d.length()-1);return n+switch(Character.toLowerCase(d.charAt(d.length()-1))){case 'm'->" Minutes";case 'h'->" Hours";case 'd'->" Days";case 'w'->" Weeks";default->"";};}
     private static PlayerResolver.ResolvedPlayer resolve(MinecraftServer server,String name,CommandSourceStack src){var t=PlayerResolver.resolve(server,name);if(t==null)src.sendFailure(Component.literal("Player not found. They must have joined Chill Zone SMP at least once."));return t;}
-    /** Returns the blacklist disconnect message for a UUID, or null when the player may join.
-     *  Called from the PlayerList login gate before the player enters the world. */
-    public static Component blacklistMessage(UUID uuid){
-        if(store==null) return null;
-        var rec=store.get(uuid);
-        if(rec==null||rec.ban==null) return null;
-        long now=System.currentTimeMillis();
-        if(rec.ban.expiresAt>0&&now>=rec.ban.expiresAt){
-            rec.ban=null;
+    /**
+     * Login-gate blacklist lookup used before a ServerPlayer is created.
+     * Active permanent bans return a disconnect message. Active temporary bans do the same.
+     * Expired temporary bans are cleared immediately and no longer block login.
+     */
+    public static Component blacklistMessage(UUID uuid) {
+        if (store == null || uuid == null) return null;
+        PunishmentRecord rec = store.get(uuid);
+        if (rec == null || rec.ban == null) return null;
+        long now = System.currentTimeMillis();
+        if (rec.ban.expiresAt > 0 && now >= rec.ban.expiresAt) {
+            rec.ban = null;
             store.save();
             return null;
         }
         return banMessage(rec);
     }
 
-    private static Component banMessage(PunishmentRecord rec){var ban=rec.ban;boolean temporary=ban.expiresAt>0;MutableComponent root=Component.literal("You are "+(temporary?"temporarily banned":"banned")+" from "+config.serverName+".\n\nReason:\n"+ban.reason+"\n");if(temporary)root.append(Component.literal("\nTime Remaining:\n"+TimeParser.formatRemaining(Math.max(0L,ban.expiresAt-System.currentTimeMillis()))+"\n"));root.append(Component.literal("\nPunished By:\n"+(ban.staff==null?"Unknown":ban.staff)+"\n"));root.append(Component.literal("\nAppeal:\n"));MutableComponent discord=Component.literal(config.discordInvite);try{discord=discord.withStyle(st->st.withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create(config.discordInvite))));}catch(Exception ignored){}root.append(discord);root.append(Component.literal("\n\n"+config.appealMessage));return root;}
+    private static Component banMessage(PunishmentRecord rec){var ban=rec.ban;boolean temporary=ban.expiresAt>0;MutableComponent root=Component.literal("You are "+(temporary?"temporarily banned":"banned")+" from "+config.serverName+".\n\nReason:\n"+ban.reason+"\n");if(temporary)root.append(Component.literal("\nTime Remaining:\n"+TimeParser.formatRemaining(ban.expiresAt-System.currentTimeMillis())+"\n"));root.append(Component.literal("\nPunished By:\n"+ban.staff+"\n"));root.append(Component.literal("\nAppeal:\n"));MutableComponent discord=Component.literal(config.discordInvite);try{discord=discord.withStyle(st->st.withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create(config.discordInvite))));}catch(Exception ignored){}root.append(discord);root.append(Component.literal("\n\n"+config.appealMessage));return root;}
 }
