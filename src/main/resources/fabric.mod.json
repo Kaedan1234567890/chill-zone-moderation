@@ -3,14 +3,15 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Warnings, mutes, preset temporary bans, permanent bans, UUID login blacklist enforcement, unbans, punishment history, and custom appeal disconnect messages.",
+  "description": "Chill Zone Moderation with bans, timed/permanent UUID blacklist enforcement, warnings, mutes, punishment history, merged SUS investigation, and always-on anti-fly evidence.",
   "authors": [
     "Chill Zone SMP"
   ],
   "environment": "server",
   "entrypoints": {
     "main": [
-      "com.chillzone.moderation.ChillZoneModeration"
+      "com.chillzone.moderation.ChillZoneModeration",
+      "com.chillzone.sus.ChillZoneSus"
     ]
   },
   "depends": {

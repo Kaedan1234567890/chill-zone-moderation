@@ -1,0 +1,9 @@
+Chill Zone Moderation 0.2.5 alpha - Merged SUS + Anti-Fly
+- Keeps /czban and /czunban names unchanged.
+- Keeps timed/permanent UUID login blacklist from 0.2.4 FIX1.
+- Merges the existing Chill Zone SUS mining/X-ray investigation system into Moderation.
+- /sus and /susclear are now supplied by the Moderation mod; remove the old standalone SUS jar to avoid duplicate commands/listeners.
+- Adds always-on conservative anti-fly for Survival/Adventure.
+- Creative, Spectator, Elytra, passenger, water and climbable movement are exempt.
+- Anti-fly does not auto-ban. Confirmed attempted unsupported flight is blocked and recorded in /sus.
+- /sus shows Fly Hacks YES/NO, attempts, prevented attempts, successful illegal flight, and last fly attempt.
