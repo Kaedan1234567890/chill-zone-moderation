@@ -1,0 +1,8 @@
+Chill Zone Moderation 0.2.10-alpha-mc26-item-fix
+
+Fixes the two exact GitHub compile errors in SusMenu.java:
+- Items.LIME_DYE -> Items.EMERALD
+- Items.GRAY_DYE -> Items.BARRIER
+
+No moderation behavior or AntiFlight integration was changed.
+Grim remains removed/no-op.

@@ -119,7 +119,7 @@ public final class SusMenu extends AbstractContainerMenu {
         }
 
         if (suspects.isEmpty()) {
-            ItemStack good = named(new ItemStack(Items.LIME_DYE), Component.literal("No active SUS evidence"));
+            ItemStack good = named(new ItemStack(Items.EMERALD), Component.literal("No active SUS evidence"));
             good.set(DataComponents.LORE, new ItemLore(List.of(
                 Component.literal("Anti-cheat and ore evidence will appear here when recorded.")
             )));
@@ -213,7 +213,7 @@ public final class SusMenu extends AbstractContainerMenu {
     }
 
     private static ItemStack unavailable(String name, String reason) {
-        ItemStack item = named(new ItemStack(Items.GRAY_DYE), Component.literal(name + " - Unavailable"));
+        ItemStack item = named(new ItemStack(Items.BARRIER), Component.literal(name + " - Unavailable"));
         item.set(DataComponents.LORE, new ItemLore(List.of(Component.literal(reason))));
         return item;
     }
