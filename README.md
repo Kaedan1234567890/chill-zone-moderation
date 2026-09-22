@@ -16,3 +16,9 @@ SUS evidence: `config/chill_zone_sus.json`
 
 ## Build
 GitHub Actions uses Java 25 and Gradle 9.5.1.
+
+
+## 0.2.9 Grim cleanup
+This build contains NO GrimAC API dependency.
+A legacy no-op GrimSusBridge.java is included only to overwrite a stale 0.2.7 file
+when this source is uploaded over an existing GitHub repository.

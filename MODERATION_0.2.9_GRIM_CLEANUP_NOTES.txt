@@ -1,0 +1,9 @@
+Chill Zone Moderation 0.2.9-alpha-antiflight-sus-clean
+
+FIX:
+- GitHub can retain the old src/main/java/com/chillzone/sus/detect/GrimSusBridge.java
+  if a newer source folder is uploaded over an older repository.
+- That stale file imports ac.grim.grimac.api and causes the exact compile error shown.
+- This version includes a no-op GrimSusBridge.java at the same path so the stale file is overwritten.
+- There is NO Grim API dependency and NO Grim API import.
+- AntiFlight evidence integration remains active.
