@@ -2,6 +2,7 @@ package com.chillzone.sus;
 
 import com.chillzone.sus.data.SusStore;
 import com.chillzone.sus.detect.SusDetector;
+import com.chillzone.sus.detect.GrimSusBridge;
 import com.chillzone.sus.permission.Permissions;
 import com.chillzone.sus.ui.SusMenu;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -24,13 +25,12 @@ public final class ChillZoneSus implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             store = SusStore.load(server);
             SusDetector.init(store);
-            com.chillzone.sus.detect.AntiFlyDetector.init(store);
+            GrimSusBridge.init(this, store);
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (store != null) {
                 store.tick(server);
-                com.chillzone.sus.detect.AntiFlyDetector.tick(server);
                 if (server.getTickCount() % 20 == 0) SusDetector.refreshAll(System.currentTimeMillis());
             }
         });
@@ -52,7 +52,7 @@ public final class ChillZoneSus implements ModInitializer {
                         ServerPlayer staff = ctx.getSource().getPlayerOrException();
                         ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
                         var record = store.getOrCreate(target.getUUID(), target.getGameProfile().name());
-                        String type = record.illegalFlightAttempts > 0 ? "hacks" : (record.diamond.suspicionScore > 0 ? "diamond" : "debris");
+                        String type = record.hasHackActivity() ? "hacks" : (record.diamond.suspicionScore > 0 ? "diamond" : "debris");
                         SusMenu.openPlayer(staff, target, store, type);
                         return 1;
                     }))

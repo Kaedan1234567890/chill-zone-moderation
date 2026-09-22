@@ -28,11 +28,16 @@ public final class SusRecord {
     public int straightBreakStreak;
     public int maxStraightBreakStreak;
 
-    // Fly/anti-fly evidence retained alongside mining evidence.
-    public int illegalFlightAttempts;
-    public int preventedFlightAttempts;
-    public long lastFlightAttemptEpochMs;
-    public boolean successfulIllegalFlight;
+    // GrimAC-backed hack evidence. Legacy anti-fly fields above were replaced in 0.2.7.
+    public int grimFlyAttempts;
+    public int grimFlyBlocked;
+    public long lastGrimFlyEpochMs;
+    public int grimSpeedAttempts;
+    public int grimSpeedBlocked;
+    public long lastGrimSpeedEpochMs;
+
+    public boolean hasHackActivity() { return grimFlyAttempts > 0 || grimSpeedAttempts > 0; }
+    public long lastHackEpochMs() { return Math.max(lastGrimFlyEpochMs, lastGrimSpeedEpochMs); }
 
     public OreCase diamond = new OreCase();
     public OreCase debris = new OreCase();

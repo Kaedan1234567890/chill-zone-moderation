@@ -79,7 +79,7 @@ public final class SusMenu extends AbstractContainerMenu {
         for (SusRecord r : store.all()) {
             if (r.diamond != null && r.diamond.suspicionScore > 0) entries.add(new CaseEntry(r, "diamond", r.diamond));
             if (r.debris != null && r.debris.suspicionScore > 0) entries.add(new CaseEntry(r, "debris", r.debris));
-            if (r.illegalFlightAttempts > 0) entries.add(new CaseEntry(r, "hacks", null));
+            if (r.hasHackActivity()) entries.add(new CaseEntry(r, "hacks", null));
         }
         entries.sort(Comparator
             .comparingInt((CaseEntry e) -> activityScore(e)).reversed()
@@ -98,7 +98,7 @@ public final class SusMenu extends AbstractContainerMenu {
         info.set(DataComponents.LORE,new ItemLore(List.of(
             Component.literal("Diamond, debris and hacks are separate activities."),
             Component.literal("Mining scores use behaviour, timing and exposure."),
-            Component.literal("Hacks Activity shows anti-fly detections only."),
+            Component.literal("Hacks Activity shows GrimAC fly/speed detections."),
             Component.literal("Only relevant activity appears in each report."),
             Component.literal("SUS is an investigation signal, not proof."))));
         container.setItem(49,info);
@@ -129,11 +129,16 @@ public final class SusMenu extends AbstractContainerMenu {
     private static List<Component> hackLore(SusRecord r, boolean click) {
         List<Component> lore=new ArrayList<>();
         lore.add(Component.literal("HACKS ACTIVITY"));
-        lore.add(Component.literal("Fly Hacks: "+(r.illegalFlightAttempts > 0 ? "YES" : "NO")));
-        lore.add(Component.literal("Flight Attempts: "+r.illegalFlightAttempts));
-        lore.add(Component.literal("Blocked by Anti-Fly: "+r.preventedFlightAttempts));
-        lore.add(Component.literal("Successful Flight: "+(r.successfulIllegalFlight ? "YES" : "NO")));
-        lore.add(Component.literal("Last Attempt: "+timeAgo(r.lastFlightAttemptEpochMs)));
+        lore.add(Component.literal("Fly Hacks: "+(r.grimFlyAttempts > 0 ? "YES" : "NO")));
+        lore.add(Component.literal("Fly Attempts: "+r.grimFlyAttempts));
+        lore.add(Component.literal("Blocked by Anti-Cheat: "+r.grimFlyBlocked));
+        lore.add(Component.literal("Not Blocked: "+Math.max(0, r.grimFlyAttempts-r.grimFlyBlocked)));
+        lore.add(Component.literal(""));
+        lore.add(Component.literal("Speed Hacks: "+(r.grimSpeedAttempts > 0 ? "YES" : "NO")));
+        lore.add(Component.literal("Speed Attempts: "+r.grimSpeedAttempts));
+        lore.add(Component.literal("Blocked by Anti-Cheat: "+r.grimSpeedBlocked));
+        lore.add(Component.literal("Not Blocked: "+Math.max(0, r.grimSpeedAttempts-r.grimSpeedBlocked)));
+        lore.add(Component.literal("Last Detection: "+timeAgo(r.lastHackEpochMs())));
         if(click){lore.add(Component.literal(""));lore.add(Component.literal("Click to investigate"));}
         return lore;
     }
@@ -159,11 +164,11 @@ public final class SusMenu extends AbstractContainerMenu {
     }
 
     private static int activityScore(CaseEntry e) {
-        return "hacks".equals(e.type) ? e.r.illegalFlightAttempts : (e.c == null ? 0 : e.c.suspicionScore);
+        return "hacks".equals(e.type) ? (e.r.grimFlyAttempts + e.r.grimSpeedAttempts) : (e.c == null ? 0 : e.c.suspicionScore);
     }
 
     private static long activityTime(CaseEntry e) {
-        return "hacks".equals(e.type) ? e.r.lastFlightAttemptEpochMs : (e.c == null ? 0 : e.c.lastFlagEpochMs);
+        return "hacks".equals(e.type) ? e.r.lastHackEpochMs() : (e.c == null ? 0 : e.c.lastFlagEpochMs);
     }
     private static String blocks(double v){ return v<0?"N/A":String.format(java.util.Locale.ROOT,"%.1f",v); }
     private static String duration(long ms){ if(ms<0)return "N/A"; long s=ms/1000; if(s<60)return s+"s"; return (s/60)+"m "+(s%60)+"s"; }

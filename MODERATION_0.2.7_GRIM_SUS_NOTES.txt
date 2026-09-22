@@ -1,0 +1,26 @@
+Chill Zone Moderation 0.2.7-alpha-grim-sus
+
+Changed only the SUS anti-cheat integration:
+- Removed the homemade AntiFlyDetector entirely.
+- Removed old homemade flight evidence fields from Hacks Activity.
+- Added official GrimAPI 1.3.2.1 as a compileOnly dependency (Grim provides it at runtime).
+- Added GrimSusBridge using Grim FlagEvent and GrimSetbackEvent.
+- HACKS ACTIVITY now records:
+  * Fly Hacks YES/NO
+  * Fly Attempts
+  * Blocked by Anti-Cheat
+  * Not Blocked
+  * Speed Hacks YES/NO
+  * Speed Attempts
+  * Blocked by Anti-Cheat
+  * Not Blocked
+  * Last Detection
+- Grim Simulation flags feed Fly/Movement evidence.
+- Grim Timer-family flags feed Speed evidence.
+- Grim setback events are correlated to the most recent Fly/Speed flag for the player (2.5 second window) and counted as blocked.
+- The integration is observational only: it does not cancel Grim events or auto-ban anyone.
+- Diamond Activity and Ancient Debris Activity are unchanged.
+- Existing moderation commands/punishment systems are unchanged.
+
+Runtime requirement:
+- Install a compatible GrimAC Fabric build on the server alongside this mod.

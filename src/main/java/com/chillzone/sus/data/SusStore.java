@@ -56,12 +56,26 @@ public final class SusStore {
     public void clearActive(UUID uuid, String name) {
         SusRecord r=getOrCreate(uuid,name); clearCase(r.diamond); clearCase(r.debris);
         r.suspicionScore=0; r.lastFlagEpochMs=0; r.cleanActiveTicks=0; r.recentFlagTimes.clear();
-        r.illegalFlightAttempts=0; r.preventedFlightAttempts=0; r.lastFlightAttemptEpochMs=0; r.successfulIllegalFlight=false;
+        clearHackFields(r);
     }
     public void clearCase(UUID uuid, String name, String type) { clearCase(getOrCreate(uuid,name).ore(type)); }
     public void clearHackCase(UUID uuid, String name) {
         SusRecord r=getOrCreate(uuid,name);
-        r.illegalFlightAttempts=0; r.preventedFlightAttempts=0; r.lastFlightAttemptEpochMs=0; r.successfulIllegalFlight=false;
+        clearHackFields(r);
+    }
+    public synchronized void recordGrimAttempt(UUID uuid, String name, boolean fly, long now) {
+        SusRecord r = getOrCreate(uuid, name);
+        if (fly) { r.grimFlyAttempts++; r.lastGrimFlyEpochMs = now; }
+        else { r.grimSpeedAttempts++; r.lastGrimSpeedEpochMs = now; }
+    }
+    public synchronized void recordGrimBlock(UUID uuid, String name, boolean fly, long now) {
+        SusRecord r = getOrCreate(uuid, name);
+        if (fly) { r.grimFlyBlocked++; r.lastGrimFlyEpochMs = Math.max(r.lastGrimFlyEpochMs, now); }
+        else { r.grimSpeedBlocked++; r.lastGrimSpeedEpochMs = Math.max(r.lastGrimSpeedEpochMs, now); }
+    }
+    private static void clearHackFields(SusRecord r) {
+        r.grimFlyAttempts=0; r.grimFlyBlocked=0; r.lastGrimFlyEpochMs=0;
+        r.grimSpeedAttempts=0; r.grimSpeedBlocked=0; r.lastGrimSpeedEpochMs=0;
     }
     private static void clearCase(SusRecord.OreCase c) {
         c.archivedPoints += Math.max(0,c.suspicionScore); c.suspicionScore=0; c.activeFlags=0; c.lastFlagEpochMs=0;
