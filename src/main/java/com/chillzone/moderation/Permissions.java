@@ -13,6 +13,7 @@ public final class Permissions {
     public static final String BAN = "chillzonemoderation.ban";
     public static final String UNBAN = "chillzonemoderation.unban";
     public static final String MUTE = "chillzonemoderation.mute";
+    public static final String FREEZE = "chillzonemoderation.freeze";
 
     public static boolean has(CommandSourceStack source, String permission) {
         if (!(source.getEntity() instanceof ServerPlayer player)) return false;

@@ -3,7 +3,7 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Chill Zone Moderation with bans, timed/permanent UUID blacklist enforcement, warnings, mutes, punishment history, merged SUS investigation with separate Diamond, Ancient Debris and GrimAC-backed Hacks Activity reports.",
+  "description": "Chill Zone Moderation with bans, mutes, warnings, freeze/unfreeze, offline-capable SUS evidence, AntiFly observe-only evidence integration, and teleportable ore/movement evidence locations.",
   "authors": [
     "Chill Zone SMP"
   ],
@@ -22,5 +22,8 @@
   },
   "mixins": [
     "chill_zone_moderation.mixins.json"
-  ]
+  ],
+  "suggests": {
+    "antifly": ">=1.1.4"
+  }
 }

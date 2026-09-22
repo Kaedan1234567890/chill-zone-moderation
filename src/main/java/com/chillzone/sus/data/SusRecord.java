@@ -1,12 +1,14 @@
 package com.chillzone.sus.data;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public final class SusRecord {
     public UUID uuid;
     public String lastKnownName;
 
-    // Legacy fields retained so existing chill_zone_sus.json files load safely.
+    // Legacy fields retained so older chill_zone_sus.json files still load.
     public int suspicionScore;
     public int archivedFlags;
     public long lastFlagEpochMs;
@@ -14,8 +16,7 @@ public final class SusRecord {
     public long totalActiveTicks;
     public List<Long> recentFlagTimes = new ArrayList<>();
 
-    // Shared mining context. These counters let SUS judge ore finds against the
-    // amount and shape of ordinary mining instead of raw diamond totals alone.
+    // Shared mining context.
     public long totalBlocksBroken;
     public long nonOreBlocksBroken;
     public int lastBreakX;
@@ -28,24 +29,113 @@ public final class SusRecord {
     public int straightBreakStreak;
     public int maxStraightBreakStreak;
 
-    // GrimAC-backed hack evidence. Legacy anti-fly fields above were replaced in 0.2.7.
-    public int grimFlyAttempts;
-    public int grimFlyBlocked;
-    public long lastGrimFlyEpochMs;
-    public int grimSpeedAttempts;
-    public int grimSpeedBlocked;
-    public long lastGrimSpeedEpochMs;
+    // AntiFlight-backed evidence categories.
+    public ActivityCase fly = new ActivityCase();
+    public ActivityCase speed = new ActivityCase();
+    public ActivityCase elytra = new ActivityCase();
 
-    public boolean hasHackActivity() { return grimFlyAttempts > 0 || grimSpeedAttempts > 0; }
-    public long lastHackEpochMs() { return Math.max(lastGrimFlyEpochMs, lastGrimSpeedEpochMs); }
-
+    // Ore / X-ray evidence.
     public OreCase diamond = new OreCase();
     public OreCase debris = new OreCase();
 
-    public SusRecord() {}
-    public SusRecord(UUID uuid, String name) { this.uuid = uuid; this.lastKnownName = name; }
+    // Newest first. The GUI exposes at most 14 saved evidence locations.
+    public List<FlagLocation> flagLocations = new ArrayList<>();
 
-    public OreCase ore(String type) { return "debris".equals(type) ? debris : diamond; }
+    public SusRecord() {}
+    public SusRecord(UUID uuid, String name) {
+        this.uuid = uuid;
+        this.lastKnownName = name;
+    }
+
+    public OreCase ore(String type) {
+        return "debris".equals(type) ? debris : diamond;
+    }
+
+    public ActivityCase activity(String type) {
+        return switch (type) {
+            case "speed" -> speed;
+            case "elytra" -> elytra;
+            default -> fly;
+        };
+    }
+
+    public boolean hasActivity() {
+        return fly.flags > 0 || speed.flags > 0 || elytra.flags > 0
+            || diamond.suspicionScore > 0 || debris.suspicionScore > 0
+            || diamond.activeFlags > 0 || debris.activeFlags > 0
+            || !flagLocations.isEmpty();
+    }
+
+    public int totalFlags() {
+        return fly.flags + speed.flags + elytra.flags + diamond.activeFlags + debris.activeFlags;
+    }
+
+    public long lastActivityEpochMs() {
+        return Math.max(
+            Math.max(Math.max(fly.lastFlagEpochMs, speed.lastFlagEpochMs), elytra.lastFlagEpochMs),
+            Math.max(diamond.lastFlagEpochMs, debris.lastFlagEpochMs)
+        );
+    }
+
+    public static final class ActivityCase {
+        public int flags;
+        public long lastFlagEpochMs;
+        public String lastReason = "";
+
+        // Raw AntiFlight values from the check that triggered.
+        public double lastActual;
+        public double lastAllowed;
+
+        // Extra server-side context captured at the same moment.
+        public double lastHorizontalBps;
+        public double lastVerticalBps;
+        public float lastPitch;
+        public boolean lastNearVerticalAscent;
+        public boolean lastElytraEquipped;
+        public boolean lastElytraActive;
+        public boolean lastCreative;
+        public boolean lastSpectator;
+        public boolean lastOnGround;
+        public int lastHeightAboveGround;
+        public String lastMovementEffects = "None";
+        public int lastRecentRockets;
+        public int lastRecentWindCharges;
+        public boolean lastRecentImpulse;
+        public boolean lastRecentlyHurt;
+        public int lastNearbyBoats;
+        public int lastNearbyEntities;
+        public String lastVehicle = "None";
+    }
+
+    public static final class FlagLocation {
+        public String category;
+        public String reason;
+        public String world;
+        public double x;
+        public double y;
+        public double z;
+        public long timestamp;
+        public double actual;
+        public double allowed;
+        public float pitch;
+
+        public FlagLocation() {}
+
+        public FlagLocation(String category, String reason, String world,
+                            double x, double y, double z, long timestamp,
+                            double actual, double allowed, float pitch) {
+            this.category = category;
+            this.reason = reason;
+            this.world = world;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.timestamp = timestamp;
+            this.actual = actual;
+            this.allowed = allowed;
+            this.pitch = pitch;
+        }
+    }
 
     public static final class OreCase {
         public int suspicionScore;
@@ -61,7 +151,6 @@ public final class SusRecord {
         public long currentVeinLastBreakMs;
         public int currentVeinX, currentVeinY, currentVeinZ;
 
-        // Behaviour-based evidence added in 0.4.0.
         public long blocksSinceLastVein;
         public long totalBlocksBetweenVeins;
         public int blockGapSamples;
@@ -81,23 +170,30 @@ public final class SusRecord {
 
         public long averageIntervalMs() {
             if (recentIntervalsMs == null || recentIntervalsMs.isEmpty()) return -1;
-            long sum = 0; for (long v : recentIntervalsMs) sum += v;
+            long sum = 0;
+            for (long v : recentIntervalsMs) sum += v;
             return sum / recentIntervalsMs.size();
         }
+
         public long fastestIntervalMs() {
             if (recentIntervalsMs == null || recentIntervalsMs.isEmpty()) return -1;
-            long min = Long.MAX_VALUE; for (long v : recentIntervalsMs) min = Math.min(min, v);
+            long min = Long.MAX_VALUE;
+            for (long v : recentIntervalsMs) min = Math.min(min, v);
             return min;
         }
+
         public double averageBlocksBetweenVeins() {
             return blockGapSamples <= 0 ? -1.0 : (double) totalBlocksBetweenVeins / blockGapSamples;
         }
+
         public double orePerVein() {
             return separateVeins <= 0 ? 0.0 : (double) oreMined / separateVeins;
         }
+
         public int cavePercent() {
             return separateVeins <= 0 ? 0 : (int)Math.round((caveExposedVeins * 100.0) / separateVeins);
         }
+
         public int tunnelPercent() {
             return separateVeins <= 0 ? 0 : (int)Math.round((tunnelLikeVeins * 100.0) / separateVeins);
         }

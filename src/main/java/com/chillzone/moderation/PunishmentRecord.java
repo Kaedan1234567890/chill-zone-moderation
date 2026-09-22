@@ -10,6 +10,7 @@ public final class PunishmentRecord {
     public List<WarningEntry> warnings = new ArrayList<>();
     public BanEntry ban;
     public MuteEntry mute;
+    public boolean frozen;
 
     public static final class WarningEntry {
         public String reason;

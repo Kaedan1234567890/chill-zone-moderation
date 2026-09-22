@@ -1,0 +1,18 @@
+Chill Zone Moderation 0.2.8-alpha-antifly-evidence-sus
+
+- Removed the leftover Grim API/source integration. Grim is NOT required or reinstalled.
+- AntiFly 1.1.4 is used as the movement detector.
+- Chill Zone intercepts AntiFly player/vehicle setbacks and Elytra glide suppression so detections become /sus evidence instead of automatic movement punishment.
+- AntiFly Hunger Mode action is also cancelled by Chill Zone so it cannot drain food/health.
+- /sus is a plain 54-slot double chest: player heads in slots 0-44; bottom row is controls only; no decorative glass.
+- One head per suspect, stored by UUID and usable while the suspect is offline.
+- Player detail categories: Fly Activity, Speed Activity, Elytra Activity, X-Ray / Ore Activity.
+- Movement evidence includes actual/allowed values, speed, Elytra state, game mode context, pitch, potions, rockets/wind charges, impulse/knockback, boats/entities and vehicle context where available.
+- Up to 14 saved flag locations can be clicked later to teleport staff to the evidence location.
+- X-Ray / Ore evidence combines Diamond + Ancient Debris behavior evidence and saves suspicious mining locations for manual tunnel inspection.
+- Clear /sus clears movement evidence, ore evidence and all saved flag locations.
+- /sus <player> and /susclear <player> support remembered/offline players.
+- Added persistent /freeze <player> and /unfreeze <player>. Players are NOT frozen by default.
+- Existing /czban, /czunban, /tempban, /untempban, /mute, /unmute, /warn, /warnings and /punishments behavior is retained.
+
+Build note: source was reviewed against the exact uploaded AntiFly 1.1.4 JAR method signatures. This environment does not have Java 25 + Gradle available, so GitHub Actions is still the compile check.

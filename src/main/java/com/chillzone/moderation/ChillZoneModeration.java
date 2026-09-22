@@ -5,6 +5,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -13,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 
 import java.net.URI;
 import java.util.*;
@@ -20,6 +22,9 @@ import java.util.*;
 public final class ChillZoneModeration implements ModInitializer {
     private static ModerationConfig config;
     private static ModerationStore store;
+    private static final Map<UUID, FrozenAnchor> FROZEN_ANCHORS = new HashMap<>();
+
+    private record FrozenAnchor(ServerLevel level, double x, double y, double z, float yaw, float pitch) {}
 
     private record Preset(String id, String display, String duration) {}
     private record HackType(String id, String display, String addedDuration) {}
@@ -140,6 +145,13 @@ public final class ChillZoneModeration implements ModInitializer {
             dispatcher.register(Commands.literal("unmute").requires(src -> Permissions.has(src, Permissions.MUTE))
                 .then(Commands.argument("player", StringArgumentType.word()).suggests(MUTED_PLAYERS).executes(ctx -> unmute(ctx.getSource(), StringArgumentType.getString(ctx,"player")))));
 
+            dispatcher.register(Commands.literal("freeze").requires(src -> Permissions.has(src, Permissions.FREEZE))
+                .then(Commands.argument("player", StringArgumentType.word()).suggests(KNOWN_PLAYERS)
+                    .executes(ctx -> freezePlayer(ctx.getSource(), StringArgumentType.getString(ctx, "player")))));
+            dispatcher.register(Commands.literal("unfreeze").requires(src -> Permissions.has(src, Permissions.FREEZE))
+                .then(Commands.argument("player", StringArgumentType.word()).suggests(KNOWN_PLAYERS)
+                    .executes(ctx -> unfreezePlayer(ctx.getSource(), StringArgumentType.getString(ctx, "player")))));
+
             registerBan(dispatcher, "czban");
             registerBan(dispatcher, "ban");
             registerUnban(dispatcher, "czunban");
@@ -151,7 +163,28 @@ public final class ChillZoneModeration implements ModInitializer {
                 .then(Commands.argument("player", StringArgumentType.word()).suggests(KNOWN_PLAYERS).executes(ctx -> showPunishments(ctx.getSource(), StringArgumentType.getString(ctx,"player")))));
         });
 
-        ServerPlayConnectionEvents.JOIN.register((handler,sender,server)->{ServerPlayer p=handler.getPlayer();var rec=store.get(p.getUUID());if(rec==null||rec.ban==null)return;if(rec.ban.expiresAt>0&&System.currentTimeMillis()>=rec.ban.expiresAt){rec.ban=null;store.save();return;}server.execute(()->p.connection.disconnect(banMessage(rec)));});
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPlayer p = handler.getPlayer();
+            var rec = store.get(p.getUUID());
+            if (rec != null && rec.ban != null) {
+                if (rec.ban.expiresAt > 0 && System.currentTimeMillis() >= rec.ban.expiresAt) {
+                    rec.ban = null;
+                    store.save();
+                } else {
+                    server.execute(() -> p.connection.disconnect(banMessage(rec)));
+                    return;
+                }
+            }
+            if (rec != null && rec.frozen) {
+                server.execute(() -> {
+                    anchorFrozenPlayer(p);
+                    p.sendSystemMessage(Component.literal("You are frozen by staff."));
+                });
+            }
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> FROZEN_ANCHORS.remove(handler.getPlayer().getUUID()));
+        ServerTickEvents.END_SERVER_TICK.register(ChillZoneModeration::enforceFrozenPlayers);
+
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, boundChatType) -> {
             var rec = store.get(sender.getUUID());
             if (rec == null || rec.mute == null) return true;
@@ -160,6 +193,66 @@ public final class ChillZoneModeration implements ModInitializer {
             sender.sendSystemMessage(Component.literal("You are currently muted. Reason: " + rec.mute.reason + " | Time Remaining: " + TimeParser.formatRemaining(rec.mute.expiresAt - now)));
             return false;
         });
+    }
+
+    private static int freezePlayer(CommandSourceStack src, String playerName) {
+        var target = resolve(src.getServer(), playerName, src);
+        if (target == null) return 0;
+        var rec = store.getOrCreate(target.uuid(), target.name());
+        rec.frozen = true;
+        store.save();
+        if (target.onlinePlayer() != null) {
+            anchorFrozenPlayer(target.onlinePlayer());
+            target.onlinePlayer().setDeltaMovement(0.0, 0.0, 0.0);
+            target.onlinePlayer().sendSystemMessage(Component.literal("You have been frozen by staff."));
+        }
+        src.sendSuccess(() -> Component.literal("Frozen " + target.name() + "."), false);
+        return 1;
+    }
+
+    private static int unfreezePlayer(CommandSourceStack src, String playerName) {
+        var target = resolve(src.getServer(), playerName, src);
+        if (target == null) return 0;
+        var rec = store.getOrCreate(target.uuid(), target.name());
+        rec.frozen = false;
+        store.save();
+        FROZEN_ANCHORS.remove(target.uuid());
+        if (target.onlinePlayer() != null) {
+            target.onlinePlayer().sendSystemMessage(Component.literal("You have been unfrozen by staff."));
+        }
+        src.sendSuccess(() -> Component.literal("Unfrozen " + target.name() + "."), false);
+        return 1;
+    }
+
+    private static void anchorFrozenPlayer(ServerPlayer player) {
+        FROZEN_ANCHORS.put(player.getUUID(), new FrozenAnchor(
+            (ServerLevel) player.level(), player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot()
+        ));
+    }
+
+    private static void enforceFrozenPlayers(MinecraftServer server) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            PunishmentRecord rec = store.get(player.getUUID());
+            if (rec == null || !rec.frozen) {
+                FROZEN_ANCHORS.remove(player.getUUID());
+                continue;
+            }
+            FrozenAnchor anchor = FROZEN_ANCHORS.get(player.getUUID());
+            if (anchor == null) {
+                anchorFrozenPlayer(player);
+                anchor = FROZEN_ANCHORS.get(player.getUUID());
+            }
+            player.setDeltaMovement(0.0, 0.0, 0.0);
+            double dx = player.getX() - anchor.x();
+            double dy = player.getY() - anchor.y();
+            double dz = player.getZ() - anchor.z();
+            if (player.level() != anchor.level() || dx * dx + dy * dy + dz * dz > 0.0001) {
+                player.teleportTo(
+                    anchor.level(), anchor.x(), anchor.y(), anchor.z(),
+                    Set.of(), anchor.yaw(), anchor.pitch(), false
+                );
+            }
+        }
     }
 
     private static void registerBan(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d,String root){ d.register(Commands.literal(root).requires(s->Permissions.has(s,Permissions.BAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(KNOWN_PLAYERS).then(Commands.argument("reason",StringArgumentType.greedyString()).suggests(BAN_REASONS).executes(ctx->{ServerPlayer staff=ctx.getSource().getPlayerOrException();var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;String reason=StringArgumentType.getString(ctx,"reason");var r=store.getOrCreate(t.uuid(),t.name());var b=new PunishmentRecord.BanEntry();b.reason=reason;b.staff=staff.getGameProfile().name();b.issuedAt=System.currentTimeMillis();b.expiresAt=0;r.ban=b;store.save();if(t.onlinePlayer()!=null)t.onlinePlayer().connection.disconnect(banMessage(r));ctx.getSource().sendSuccess(()->Component.literal("Permanently banned "+t.name()+". Reason: "+reason),false);return 1;})))); }
