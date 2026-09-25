@@ -4,6 +4,8 @@ import com.chillzone.sus.data.SusRecord;
 import com.chillzone.sus.data.SusStore;
 import com.chillzone.sus.permission.Permissions;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,8 +34,8 @@ public final class SusMenu extends AbstractContainerMenu {
     private static final int SIZE = 54;
     private static final int PLAYER_SLOTS_PER_PAGE = 45; // top five rows only
     private static final int[] LOCATION_SLOTS = {
-        28, 29, 30, 31, 32, 33, 34,
-        37, 38, 39, 40, 41, 42, 43
+        27, 28, 29, 30, 31, 32, 33, 34, 35,
+        36, 37, 38, 39, 40, 41, 42, 43, 44
     };
 
     private final SimpleContainer container;
@@ -89,7 +91,14 @@ public final class SusMenu extends AbstractContainerMenu {
     }
 
     private void build() {
-        // Intentionally no decorative glass. Empty slots stay empty.
+        // No glass anywhere above the bottom row. The bottom row remains the
+        // dedicated control/navigation strip, with real buttons replacing glass.
+        ItemStack filler = named(
+            new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse("minecraft:gray_stained_glass_pane"))),
+            Component.literal(" ")
+        );
+        for (int slot = 45; slot < SIZE; slot++) container.setItem(slot, filler.copy());
+
         if (focused == null) buildList();
         else buildFocused();
     }
@@ -151,55 +160,68 @@ public final class SusMenu extends AbstractContainerMenu {
 
         ItemStack head = named(new ItemStack(Items.PLAYER_HEAD), Component.literal(name));
         if (r != null) head.set(DataComponents.LORE, new ItemLore(playerSummaryLore(r)));
-        container.setItem(4, head); // one full row above the old slot 13
+        container.setItem(4, head);
 
-        // Evidence categories.
+        ServerPlayer target = viewer.level().getServer().getPlayerList().getPlayer(focused);
+
+        // ACTION / CONTROL ROW moved UP.
+        if (target != null && Permissions.has(viewer, Permissions.TELEPORT)) {
+            ItemStack tp = named(new ItemStack(Items.ENDER_PEARL), Component.literal("Teleport to Player"));
+            tp.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Teleports to the player's current location."),
+                Component.literal("Player must be online.")
+            )));
+            container.setItem(10, tp);
+        } else {
+            container.setItem(10, unavailable("Teleport to Player", "Player is offline"));
+        }
+
+        if (target != null && Permissions.has(viewer, Permissions.SPECTATE)) {
+            ItemStack spec = named(new ItemStack(Items.ENDER_EYE), Component.literal("Spectate Player"));
+            spec.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Uses normal spectator mode for reliability."),
+                Component.literal("Player must be online.")
+            )));
+            container.setItem(13, spec);
+        } else {
+            container.setItem(13, unavailable("Spectate Player", "Player is offline"));
+        }
+
+        if (Permissions.has(viewer, Permissions.CLEAR)) {
+            ItemStack clear = named(new ItemStack(Items.BUCKET), Component.literal("Clear /sus"));
+            clear.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Clears ALL active SUS evidence for this player."),
+                Component.literal("Also clears all saved mining/X-ray locations.")
+            )));
+            container.setItem(16, clear);
+        }
+
+        // ACTIVITY ROW moved DOWN so long hover lore has more vertical room.
         SusRecord.ActivityCase fly = r == null ? new SusRecord.ActivityCase() : r.fly;
         SusRecord.ActivityCase speed = r == null ? new SusRecord.ActivityCase() : r.speed;
         SusRecord.ActivityCase elytra = r == null ? new SusRecord.ActivityCase() : r.elytra;
         SusRecord.OreCase diamond = r == null ? new SusRecord.OreCase() : r.diamond;
         SusRecord.OreCase debris = r == null ? new SusRecord.OreCase() : r.debris;
 
-        container.setItem(10, evidenceItem(new ItemStack(Items.FEATHER), "Fly Activity", flyLore(fly)));
-        container.setItem(12, evidenceItem(new ItemStack(Items.SUGAR), "Speed Activity", speedLore(speed)));
-        container.setItem(14, evidenceItem(new ItemStack(Items.ELYTRA), "Elytra Activity", elytraLore(elytra)));
-        container.setItem(16, evidenceItem(new ItemStack(Items.DIAMOND_PICKAXE), "X-Ray / Ore Activity", xrayLore(diamond, debris, r)));
+        container.setItem(19, evidenceItem(new ItemStack(Items.DIAMOND_PICKAXE), "X-Ray / Ore Activity", xrayLore(diamond, debris, r)));
+        container.setItem(21, evidenceItem(new ItemStack(Items.FEATHER), "Fly Activity", flyLore(fly)));
+        container.setItem(23, evidenceItem(new ItemStack(Items.SUGAR), "Speed Activity", speedLore(speed)));
+        container.setItem(25, evidenceItem(new ItemStack(Items.ELYTRA), "Elytra Activity", elytraLore(elytra)));
 
-        ServerPlayer target = viewer.level().getServer().getPlayerList().getPlayer(focused);
-
-        // Existing live-player actions moved one row upward from the old layout.
-        if (target != null && Permissions.has(viewer, Permissions.TELEPORT)) {
-            container.setItem(20, named(new ItemStack(Items.ENDER_PEARL), Component.literal("Teleport to Player")));
-        } else {
-            container.setItem(20, unavailable("Teleport to Player", "Player is offline"));
-        }
-
-        if (target != null && Permissions.has(viewer, Permissions.SPECTATE)) {
-            container.setItem(22, named(new ItemStack(Items.ENDER_EYE), Component.literal("Spectate Player")));
-        } else {
-            container.setItem(22, unavailable("Spectate Player", "Player is offline"));
-        }
-
-        if (Permissions.has(viewer, Permissions.CLEAR)) {
-            ItemStack clear = named(new ItemStack(Items.BUCKET), Component.literal("Clear /sus"));
-            clear.set(DataComponents.LORE, new ItemLore(List.of(
-                Component.literal("Clears ALL evidence for this player."),
-                Component.literal("Also clears all saved flag locations.")
-            )));
-            container.setItem(24, clear);
-        }
-
-        // 14 teleportable evidence locations: two rows of seven, directly above
-        // the bottom navigation row.
+        // Exactly 18 mining/X-ray evidence slots: two complete rows, including
+        // the newly available far-left and far-right slots.
         if (r != null && r.flagLocations != null) {
-            int count = Math.min(LOCATION_SLOTS.length, r.flagLocations.size());
-            for (int i = 0; i < count; i++) {
-                SusRecord.FlagLocation loc = r.flagLocations.get(i);
-                int slot = LOCATION_SLOTS[i];
-                ItemStack marker = named(new ItemStack(Items.COMPASS), Component.literal("Flag Location #" + (i + 1)));
+            int shown = 0;
+            for (SusRecord.FlagLocation loc : r.flagLocations) {
+                if (!"diamond".equals(loc.category) && !"debris".equals(loc.category)) continue;
+                if (shown >= LOCATION_SLOTS.length) break;
+
+                int slot = LOCATION_SLOTS[shown];
+                ItemStack marker = named(new ItemStack(Items.COMPASS), Component.literal("Mining Evidence #" + (shown + 1)));
                 marker.set(DataComponents.LORE, new ItemLore(locationLore(loc)));
                 container.setItem(slot, marker);
                 locationSlots.put(slot, loc);
+                shown++;
             }
         }
 
@@ -226,7 +248,7 @@ public final class SusMenu extends AbstractContainerMenu {
         lore.add(Component.literal("Elytra: " + r.elytra.flags));
         lore.add(Component.literal("X-Ray/Ore: " + (r.diamond.activeFlags + r.debris.activeFlags)
             + " flags | Diamond " + r.diamond.suspicionScore + "/30 | Debris " + r.debris.suspicionScore + "/30"));
-        lore.add(Component.literal("Saved Locations: " + (r.flagLocations == null ? 0 : r.flagLocations.size()) + "/14"));
+        lore.add(Component.literal("Saved Mining Locations: " + miningLocationCount(r) + "/" + SusStore.MAX_FLAG_LOCATIONS));
         lore.add(Component.literal("Last Activity: " + timeAgo(r.lastActivityEpochMs())));
         lore.add(Component.literal(""));
         lore.add(Component.literal("Click to investigate"));
@@ -327,7 +349,8 @@ public final class SusMenu extends AbstractContainerMenu {
         long oreLocations = r.flagLocations == null ? 0 : r.flagLocations.stream()
             .filter(loc -> "diamond".equals(loc.category) || "debris".equals(loc.category))
             .count();
-        lore.add(Component.literal("Saved X-Ray/Ore Locations: " + oreLocations));
+        lore.add(Component.literal("Saved X-Ray/Ore Locations: " + oreLocations + "/" + SusStore.MAX_FLAG_LOCATIONS));
+        lore.add(Component.literal("One teleport point max per qualifying ore vein/event."));
         return lore;
     }
 
@@ -376,7 +399,7 @@ public final class SusMenu extends AbstractContainerMenu {
 
         ServerPlayer target = viewer.level().getServer().getPlayerList().getPlayer(focused);
 
-        if (slotId == 20 && Permissions.has(viewer, Permissions.TELEPORT)) {
+        if (slotId == 10 && Permissions.has(viewer, Permissions.TELEPORT)) {
             if (target == null) {
                 viewer.sendSystemMessage(Component.literal("That player is offline."));
                 return;
@@ -390,7 +413,7 @@ public final class SusMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (slotId == 22 && Permissions.has(viewer, Permissions.SPECTATE)) {
+        if (slotId == 13 && Permissions.has(viewer, Permissions.SPECTATE)) {
             if (target == null) {
                 viewer.sendSystemMessage(Component.literal("That player is offline."));
                 return;
@@ -402,12 +425,12 @@ public final class SusMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (slotId == 24 && Permissions.has(viewer, Permissions.CLEAR)) {
+        if (slotId == 16 && Permissions.has(viewer, Permissions.CLEAR)) {
             String name = target != null ? target.getGameProfile().name()
                 : Optional.ofNullable(store.get(focused)).map(x -> x.lastKnownName).orElse("player");
             store.clearActive(focused, name);
             store.save(viewer.level().getServer());
-            viewer.sendSystemMessage(Component.literal("Cleared ALL SUS evidence and saved locations for " + name + "."));
+            viewer.sendSystemMessage(Component.literal("Cleared ALL SUS evidence and saved mining locations for " + name + "."));
             open(viewer, store);
             return;
         }
@@ -445,6 +468,13 @@ public final class SusMenu extends AbstractContainerMenu {
 
     private static String displayName(SusRecord r) {
         return r.lastKnownName == null || r.lastKnownName.isBlank() ? r.uuid.toString() : r.lastKnownName;
+    }
+
+    private static long miningLocationCount(SusRecord r) {
+        if (r == null || r.flagLocations == null) return 0;
+        return r.flagLocations.stream()
+            .filter(loc -> "diamond".equals(loc.category) || "debris".equals(loc.category))
+            .count();
     }
 
     private static String yesNo(boolean value) {

@@ -81,6 +81,9 @@ public final class SusDetector {
         boolean savedSuspiciousLocation = false;
 
         if (!same) {
+            // A genuinely new vein/event may save one new teleport point.
+            c.evidenceSavedForCurrentVein = false;
+
             long previousVeinTime = c.lastVeinEpochMs;
             long blocksBeforeThisVein = c.blocksSinceLastVein;
             long timeSincePreviousVein = previousVeinTime > 0 ? now - previousVeinTime : -1L;

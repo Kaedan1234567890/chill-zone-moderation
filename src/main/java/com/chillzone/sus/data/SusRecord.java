@@ -38,7 +38,7 @@ public final class SusRecord {
     public OreCase diamond = new OreCase();
     public OreCase debris = new OreCase();
 
-    // Newest first. The GUI exposes at most 14 saved evidence locations.
+    // Newest first. Mining/X-ray evidence locations only. The GUI exposes at most 18 saved evidence locations.
     public List<FlagLocation> flagLocations = new ArrayList<>();
 
     public SusRecord() {}
@@ -150,6 +150,9 @@ public final class SusRecord {
         public int currentVeinId;
         public long currentVeinLastBreakMs;
         public int currentVeinX, currentVeinY, currentVeinZ;
+
+        // One saved teleport point maximum per qualifying ore vein/event.
+        public boolean evidenceSavedForCurrentVein;
 
         public long blocksSinceLastVein;
         public long totalBlocksBetweenVeins;

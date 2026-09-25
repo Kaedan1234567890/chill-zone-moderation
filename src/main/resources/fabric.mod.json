@@ -3,7 +3,7 @@
   "id": "chill_zone_moderation",
   "version": "${version}",
   "name": "Chill Zone Moderation",
-  "description": "Chill Zone Moderation with bans, mutes, warnings, freeze/unfreeze, offline-capable SUS evidence, AntiFly observe-only evidence integration, and teleportable ore/movement evidence locations.",
+  "description": "Chill Zone Moderation with bans, mutes, warnings, freeze/unfreeze, offline-capable SUS evidence, AntiFly observe-only evidence integration, and 18-slot teleportable mining/X-ray evidence, one TP per qualifying ore event, and observe-only movement evidence.",
   "authors": [
     "Chill Zone SMP"
   ],

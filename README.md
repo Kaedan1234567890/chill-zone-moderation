@@ -1,13 +1,13 @@
 # Chill Zone Moderation
 
-Current development version: `0.2.8-alpha-antifly-evidence-sus`
+Current development version: `0.2.11-alpha-sus-final-evidence`
 
 Core moderation commands remain in this project, including `/czban`, `/czunban`, `/tempban`, `/untempban`, `/warn`, `/warnings`, `/mute`, `/unmute`, `/punishments`, plus `/freeze` and `/unfreeze`.
 
 ## SUS
-`/sus` is a staff evidence GUI. It stores evidence by UUID, works for remembered/offline players, and keeps Fly, Speed, Elytra and X-Ray/Ore activity plus up to 14 teleportable evidence locations.
+`/sus` is a staff evidence GUI. It stores evidence by UUID, works for remembered/offline players, and keeps Fly, Speed, Elytra and X-Ray/Ore activity. Only qualifying mining/X-ray events save teleport evidence, with up to 18 locations and one saved TP per qualifying vein/event.
 
-AntiFly 1.1.4 provides movement detections. Chill Zone intercepts the normal AntiFly movement actions so those detections are stored as evidence instead of automatically punishing/setbacking the player. Staff decide enforcement manually.
+AntiFly 1.1.4 provides movement detections. Chill Zone intercepts the normal AntiFly movement actions so those detections are stored as observe-only activity evidence instead of automatically punishing/setbacking the player. Movement detections never create teleport locations. Staff decide enforcement manually.
 
 ## Files
 Moderation config: `config/chill-zone-moderation.json`

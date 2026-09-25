@@ -1,0 +1,17 @@
+Chill Zone Moderation 0.2.11-alpha-sus-final-evidence
+
+SUS final cleanup merged into the MODERATION project:
+- Upper 5 GUI rows have no decorative glass.
+- Bottom row keeps glass filler/navigation controls only.
+- Detail controls moved up one row.
+- Mining/Fly/Speed/Elytra activity cards moved down one row.
+- Saved evidence area expanded from 14 to 18 slots (two full rows).
+- Only qualifying Diamond / Ancient Debris X-ray/mining events save TP evidence.
+- Fly/Speed/Elytra AntiFly evidence remains visible but NEVER saves TP locations.
+- Explicit one-TP-per-qualifying-vein/event lock prevents evidence spam.
+- A later qualifying new vein/event may save one new TP.
+- /sus clear and /susclear clear active evidence and saved mining locations.
+- One-time migration clears all old saved teleport/evidence locations on first start
+  of this version while preserving scores/history/activity counters.
+- Normal spectator mode remains for reliable staff spectating.
+- Existing moderation commands, punishments, AntiFly observe-only hooks and permissions are preserved.

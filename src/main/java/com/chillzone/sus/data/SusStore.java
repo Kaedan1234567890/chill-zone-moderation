@@ -22,7 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class SusStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int SAVE_EVERY_TICKS = 20 * 60;
-    private static final int MAX_FLAG_LOCATIONS = 14;
+    public static final int MAX_FLAG_LOCATIONS = 18;
+    private static final String RESET_MARKER = "chill_zone_sus_evidence_reset_moderation_0_2_11.done";
 
     private final Map<UUID, SusRecord> records = new ConcurrentHashMap<>();
     private long ticksSinceSave;
@@ -30,21 +31,39 @@ public final class SusStore {
     public static SusStore load(MinecraftServer server) {
         SusStore store = new SusStore();
         Path path = file();
-        if (!Files.exists(path)) return store;
+        boolean oneTimeReset = !Files.exists(resetMarker());
 
-        try (Reader reader = Files.newBufferedReader(path)) {
-            List<SusRecord> loaded = GSON.fromJson(reader, new TypeToken<List<SusRecord>>(){}.getType());
-            if (loaded != null) {
-                for (SusRecord r : loaded) {
-                    if (r.uuid != null) {
-                        normalize(r);
-                        store.records.put(r.uuid, r);
+        if (Files.exists(path)) {
+            try (Reader reader = Files.newBufferedReader(path)) {
+                List<SusRecord> loaded = GSON.fromJson(reader, new TypeToken<List<SusRecord>>(){}.getType());
+                if (loaded != null) {
+                    for (SusRecord r : loaded) {
+                        if (r != null && r.uuid != null) {
+                            normalize(r);
+                            // One-time cleanup for this update: clear every old saved
+                            // teleport/evidence location but keep scores, history and
+                            // movement/mining counters intact.
+                            if (oneTimeReset) r.flagLocations.clear();
+                            store.records.put(r.uuid, r);
+                        }
                     }
                 }
+            } catch (Exception e) {
+                System.err.println("[Chill Zone SUS] Could not load data: " + e.getMessage());
             }
-        } catch (Exception e) {
-            System.err.println("[Chill Zone SUS] Could not load data: " + e.getMessage());
         }
+
+        if (oneTimeReset) {
+            store.save(server);
+            try {
+                Files.createDirectories(resetMarker().getParent());
+                Files.writeString(resetMarker(), "Old SUS teleport/evidence locations cleared once.\n");
+                System.out.println("[Chill Zone SUS] One-time saved evidence-location reset completed.");
+            } catch (Exception e) {
+                System.err.println("[Chill Zone SUS] Could not write evidence reset marker: " + e.getMessage());
+            }
+        }
+
         return store;
     }
 
@@ -56,6 +75,9 @@ public final class SusStore {
         if (r.diamond == null) r.diamond = new SusRecord.OreCase();
         if (r.debris == null) r.debris = new SusRecord.OreCase();
         if (r.flagLocations == null) r.flagLocations = new ArrayList<>();
+        // From this version onward only ore/X-ray locations are valid teleport evidence.
+        r.flagLocations.removeIf(loc -> loc == null
+            || (!"diamond".equals(loc.category) && !"debris".equals(loc.category)));
         normalizeActivity(r.fly);
         normalizeActivity(r.speed);
         normalizeActivity(r.elytra);
@@ -90,6 +112,10 @@ public final class SusStore {
 
     private static Path file() {
         return FabricLoader.getInstance().getConfigDir().resolve("chill_zone_sus.json");
+    }
+
+    private static Path resetMarker() {
+        return FabricLoader.getInstance().getConfigDir().resolve(RESET_MARKER);
     }
 
     public SusRecord getOrCreate(UUID uuid, String name) {
@@ -173,18 +199,19 @@ public final class SusStore {
         c.lastNearbyEntities = nearbyEntities;
         c.lastVehicle = vehicle == null || vehicle.isBlank() ? "None" : vehicle;
 
-        addLocation(r, new SusRecord.FlagLocation(
-            category,
-            reason,
-            player.level().dimension().identifier().toString(),
-            player.getX(), player.getY(), player.getZ(),
-            now, actual, allowed, pitch
-        ));
+        // Movement detections remain visible in the activity cards, but must
+        // never create teleportable evidence locations.
     }
 
     public synchronized void recordOreEvidence(ServerPlayer player, String type, String reason,
                                                int x, int y, int z, long now) {
         SusRecord r = getOrCreate(player.getUUID(), player.getGameProfile().name());
+        SusRecord.OreCase ore = r.ore(type);
+
+        // Explicit one-TP-per-qualifying-vein lock. A new vein resets this in
+        // SusDetector; further flags from the same vein cannot spam locations.
+        if (ore.evidenceSavedForCurrentVein) return;
+
         addLocation(r, new SusRecord.FlagLocation(
             type,
             reason,
@@ -192,25 +219,25 @@ public final class SusStore {
             x, y, z,
             now, 0.0, 0.0, player.getXRot()
         ));
+        ore.evidenceSavedForCurrentVein = true;
     }
 
     private static void addLocation(SusRecord r, SusRecord.FlagLocation location) {
         if (r.flagLocations == null) r.flagLocations = new ArrayList<>();
 
-        // Avoid filling all 14 slots with the same check firing every tick at
-        // effectively the same block. A meaningfully different reason/location
-        // is still saved immediately.
-        if (!r.flagLocations.isEmpty()) {
-            SusRecord.FlagLocation newest = r.flagLocations.get(0);
-            boolean sameCategory = safeEquals(newest.category, location.category);
-            boolean sameReason = safeEquals(newest.reason, location.reason);
-            boolean sameWorld = safeEquals(newest.world, location.world);
-            double dx = newest.x - location.x;
-            double dy = newest.y - location.y;
-            double dz = newest.z - location.z;
-            boolean sameArea = dx * dx + dy * dy + dz * dz <= 4.0;
-            boolean veryRecent = Math.abs(location.timestamp - newest.timestamp) <= 2_000L;
-            if (sameCategory && sameReason && sameWorld && sameArea && veryRecent) return;
+        // Hard safety rule: only suspicious Diamond / Ancient Debris mining may
+        // create a teleport location. Movement evidence never belongs here.
+        if (!"diamond".equals(location.category) && !"debris".equals(location.category)) return;
+
+        // Never add the exact same evidence point twice.
+        for (SusRecord.FlagLocation existing : r.flagLocations) {
+            if (safeEquals(existing.category, location.category)
+                && safeEquals(existing.world, location.world)
+                && Math.abs(existing.x - location.x) < 0.001
+                && Math.abs(existing.y - location.y) < 0.001
+                && Math.abs(existing.z - location.z) < 0.001) {
+                return;
+            }
         }
 
         r.flagLocations.add(0, location);
@@ -310,6 +337,7 @@ public final class SusStore {
         c.lastVeinEpochMs = 0;
         c.currentVeinId = 0;
         c.currentVeinLastBreakMs = 0;
+        c.evidenceSavedForCurrentVein = false;
         c.blocksSinceLastVein = 0;
         c.totalBlocksBetweenVeins = 0;
         c.blockGapSamples = 0;
