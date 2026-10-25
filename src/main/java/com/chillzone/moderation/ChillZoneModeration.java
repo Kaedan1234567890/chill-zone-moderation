@@ -6,6 +6,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -107,6 +108,8 @@ public final class ChillZoneModeration implements ModInitializer {
     @Override public void onInitialize() {
         config = ModerationConfig.load();
         store = ModerationStore.load();
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> ServerStateManager.load());
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> ServerStateManager.save());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(Commands.literal("warn").requires(s -> Permissions.has(s, Permissions.WARN))
                 .then(Commands.argument("player", StringArgumentType.word()).suggests(KNOWN_PLAYERS)
@@ -157,6 +160,47 @@ public final class ChillZoneModeration implements ModInitializer {
             registerUnban(dispatcher, "czunban");
             registerUnban(dispatcher, "unban");
             registerUntempban(dispatcher);
+
+            dispatcher.register(Commands.literal("end")
+                .requires(s -> Permissions.has(s, Permissions.SERVER_CONTROL) || s.hasPermission(4))
+                .then(Commands.literal("close").executes(ctx -> {
+                    ServerStateManager.closeEnd(ctx.getSource().getServer());
+                    return 1;
+                }))
+                .then(Commands.literal("open")
+                    .executes(ctx -> {
+                        ServerStateManager.openEnd(ctx.getSource().getServer(), null);
+                        return 1;
+                    })
+                    .then(Commands.argument("message", StringArgumentType.greedyString()).executes(ctx -> {
+                        ServerStateManager.openEnd(ctx.getSource().getServer(), StringArgumentType.getString(ctx, "message"));
+                        return 1;
+                    })))
+            );
+
+            dispatcher.register(Commands.literal("nether")
+                .requires(s -> Permissions.has(s, Permissions.SERVER_CONTROL) || s.hasPermission(4))
+                .then(Commands.literal("close").executes(ctx -> {
+                    ServerStateManager.closeNether(ctx.getSource().getServer());
+                    return 1;
+                }))
+                .then(Commands.literal("open").executes(ctx -> {
+                    ServerStateManager.openNether(ctx.getSource().getServer());
+                    return 1;
+                }))
+            );
+
+            dispatcher.register(Commands.literal("server")
+                .requires(s -> Permissions.has(s, Permissions.SERVER_CONTROL) || s.hasPermission(4))
+                .then(Commands.literal("preparing").executes(ctx -> {
+                    ServerStateManager.preparing(ctx.getSource().getServer());
+                    return 1;
+                }))
+                .then(Commands.literal("start").executes(ctx -> {
+                    ServerStateManager.startServer(ctx.getSource().getServer());
+                    return 1;
+                }))
+            );
 
             dispatcher.register(Commands.literal("punishments").requires(s -> Permissions.has(s, Permissions.WARNINGS))
                 .executes(ctx -> showPunishments(ctx.getSource(), null))

@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "PlayerListBlacklistMixin",
-    "AntiFlyEvidenceMixin"
+    "AntiFlyEvidenceMixin",
+    "DimensionLockMixin",
+    "GracePvpMixin"
   ],
   "injectors": {
     "defaultRequire": 1

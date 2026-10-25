@@ -18,6 +18,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.SimpleContainer;
 
 import java.util.ArrayList;
@@ -32,7 +33,10 @@ import java.util.UUID;
 
 public final class SusMenu extends AbstractContainerMenu {
     private static final int SIZE = 54;
-    private static final int PLAYER_SLOTS_PER_PAGE = 45; // top five rows only
+    private static final int PLAYER_SLOTS_PER_PAGE = 45; // later pages use top five rows
+    private static final int FIRST_PAGE_OLD_SLOTS = 27;
+    private static final int RECENT_SLOTS = 9;
+    private static final long RECENT_WINDOW_MS = 30L * 60L * 1000L;
     private static final int[] LOCATION_SLOTS = {
         27, 28, 29, 30, 31, 32, 33, 34, 35,
         36, 37, 38, 39, 40, 41, 42, 43, 44
@@ -109,30 +113,53 @@ public final class SusMenu extends AbstractContainerMenu {
             if (r != null && r.uuid != null && r.hasActivity()) suspects.add(r);
         }
 
-        suspects.sort(Comparator
-            .comparingInt(SusRecord::totalFlags).reversed()
-            .thenComparingLong(r -> -r.lastActivityEpochMs()));
+        suspects.sort(Comparator.comparingLong(SusRecord::lastActivityEpochMs).reversed());
+        long recentCutoff = System.currentTimeMillis() - RECENT_WINDOW_MS;
 
-        pageCount = Math.max(1, (suspects.size() + PLAYER_SLOTS_PER_PAGE - 1) / PLAYER_SLOTS_PER_PAGE);
-        int safePage = Math.min(page, pageCount - 1);
-        int from = safePage * PLAYER_SLOTS_PER_PAGE;
-        int to = Math.min(suspects.size(), from + PLAYER_SLOTS_PER_PAGE);
-
-        for (int i = from; i < to; i++) {
-            int slot = i - from; // exact top-left -> right -> next row order, slots 0..44
-            SusRecord r = suspects.get(i);
-            ItemStack head = named(new ItemStack(Items.PLAYER_HEAD), Component.literal(displayName(r)));
-            head.set(DataComponents.LORE, new ItemLore(playerSummaryLore(r)));
-            container.setItem(slot, head);
-            playerSlots.put(slot, r.uuid);
+        List<SusRecord> recent = new ArrayList<>();
+        List<SusRecord> older = new ArrayList<>();
+        for (SusRecord r : suspects) {
+            if (r.lastActivityEpochMs() >= recentCutoff && recent.size() < RECENT_SLOTS) recent.add(r);
+            else older.add(r);
         }
 
-        if (suspects.isEmpty()) {
-            ItemStack good = named(new ItemStack(Items.EMERALD), Component.literal("No active SUS evidence"));
-            good.set(DataComponents.LORE, new ItemLore(List.of(
-                Component.literal("Anti-cheat and ore evidence will appear here when recorded.")
-            )));
-            container.setItem(22, good);
+        // First page: 9 recent + divider + 27 older.
+        // Later pages: 45 older only.
+        int remainingAfterFirst = Math.max(0, older.size() - FIRST_PAGE_OLD_SLOTS);
+        pageCount = 1 + (remainingAfterFirst + PLAYER_SLOTS_PER_PAGE - 1) / PLAYER_SLOTS_PER_PAGE;
+        int safePage = Math.min(page, pageCount - 1);
+
+        if (safePage == 0) {
+            for (int i = 0; i < recent.size(); i++) {
+                putPlayerHead(i, recent.get(i), true);
+            }
+
+            for (int slot = 9; slot <= 17; slot++) {
+                ItemStack divider = named(
+                    new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse("minecraft:gray_stained_glass_pane"))),
+                    Component.literal(slot == 13 ? "Older SUS Cases" : " ")
+                );
+                container.setItem(slot, divider);
+            }
+
+            int count = Math.min(FIRST_PAGE_OLD_SLOTS, older.size());
+            for (int i = 0; i < count; i++) {
+                putPlayerHead(18 + i, older.get(i), false);
+            }
+
+            if (recent.isEmpty() && older.isEmpty()) {
+                ItemStack good = named(new ItemStack(Items.EMERALD), Component.literal("No active SUS evidence"));
+                good.set(DataComponents.LORE, new ItemLore(List.of(
+                    Component.literal("Anti-cheat and ore evidence will appear here when recorded.")
+                )));
+                container.setItem(22, good);
+            }
+        } else {
+            int from = FIRST_PAGE_OLD_SLOTS + (safePage - 1) * PLAYER_SLOTS_PER_PAGE;
+            int to = Math.min(older.size(), from + PLAYER_SLOTS_PER_PAGE);
+            for (int i = from; i < to; i++) {
+                putPlayerHead(i - from, older.get(i), false);
+            }
         }
 
         if (safePage > 0) {
@@ -141,10 +168,10 @@ public final class SusMenu extends AbstractContainerMenu {
 
         ItemStack info = named(new ItemStack(Items.BOOK), Component.literal("SUS - Page " + (safePage + 1) + "/" + pageCount));
         info.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal("Top 5 rows: suspect/player heads"),
-            Component.literal("Bottom row: controls only"),
-            Component.literal("AntiFlight is evidence-only; staff decide punishment."),
-            Component.literal("Click a player to inspect their evidence." )
+            Component.literal(safePage == 0 ? "Top row: recent cases" : "Older SUS cases"),
+            Component.literal(safePage == 0 ? "Rows 3-5: older cases" : "Top 5 rows: older cases"),
+            Component.literal("Player heads use the suspect's skin/profile."),
+            Component.literal("Click a player to inspect their evidence.")
         )));
         container.setItem(49, info);
 
@@ -153,12 +180,24 @@ public final class SusMenu extends AbstractContainerMenu {
         }
     }
 
+    private void putPlayerHead(int slot, SusRecord r, boolean recent) {
+        ItemStack head = named(new ItemStack(Items.PLAYER_HEAD), Component.literal(displayName(r)));
+        head.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved(r.uuid));
+        List<Component> lore = new ArrayList<>();
+        if (recent) lore.add(Component.literal("RECENT CASE"));
+        lore.addAll(playerSummaryLore(r));
+        head.set(DataComponents.LORE, new ItemLore(lore));
+        container.setItem(slot, head);
+        playerSlots.put(slot, r.uuid);
+    }
+
     private void buildFocused() {
         SusRecord r = store.get(focused);
         String name = r != null && r.lastKnownName != null ? r.lastKnownName
             : (focusedName == null ? "Unknown Player" : focusedName);
 
         ItemStack head = named(new ItemStack(Items.PLAYER_HEAD), Component.literal(name));
+        head.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved(focused));
         if (r != null) head.set(DataComponents.LORE, new ItemLore(playerSummaryLore(r)));
         container.setItem(4, head);
 
