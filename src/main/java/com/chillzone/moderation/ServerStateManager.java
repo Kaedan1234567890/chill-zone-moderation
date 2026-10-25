@@ -26,7 +26,9 @@ public final class ServerStateManager {
 
     public static final double PREPARING_BORDER = 100.0;
     public static final double FINAL_OVERWORLD_BORDER = 16000.0;
-    public static final long BORDER_EXPANSION_TICKS = 20L * 60L; // one visible minute
+    public static final int NETHER_BORDER = 5000;
+    public static final int END_BORDER = 10000;
+    public static final long BORDER_EXPANSION_TICKS = 20L * 90L; // 90 seconds: slightly slower visible expansion
     public static final long GRACE_MILLIS = 60L * 60L * 1000L;
 
     private static State state = new State();
@@ -92,14 +94,16 @@ public final class ServerStateManager {
         broadcast(server, Component.literal("The End is now CLOSED.").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
     }
 
-    public static void openEnd(MinecraftServer server, String customMessage) {
+    public static void openEnd(MinecraftServer server, String openingMode) {
         state.endOpen = true;
         save();
-        Component msg = Component.literal("The End is now OPEN!").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD);
-        if (customMessage != null && !customMessage.isBlank()) {
-            msg = msg.copy().append(Component.literal(" " + customMessage).withStyle(ChatFormatting.WHITE));
-        }
-        broadcast(server, msg);
+        boolean dragon = "dragon_fight".equals(openingMode);
+        showTitle(server,
+            Component.literal("THE END IS OPEN!").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD),
+            Component.literal(dragon ? "Good luck getting the dragon egg!" : "Explore the End!").withStyle(ChatFormatting.WHITE));
+        broadcast(server, Component.literal("The End is OPEN!").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+        if (dragon) broadcast(server, Component.literal("Dragon Fight: Good luck getting the egg!").withStyle(ChatFormatting.YELLOW));
+        broadcast(server, Component.literal("End world border: " + END_BORDER + " x " + END_BORDER + " blocks.").withStyle(ChatFormatting.GRAY));
     }
 
     public static void closeNether(MinecraftServer server) {
@@ -112,7 +116,11 @@ public final class ServerStateManager {
     public static void openNether(MinecraftServer server) {
         state.netherOpen = true;
         save();
-        broadcast(server, Component.literal("The Nether is now OPEN!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        showTitle(server,
+            Component.literal("THE NETHER IS OPEN!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+            Component.literal("World border: " + NETHER_BORDER + " x " + NETHER_BORDER).withStyle(ChatFormatting.YELLOW));
+        broadcast(server, Component.literal("The Nether is OPEN!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        broadcast(server, Component.literal("Nether world border: " + NETHER_BORDER + " x " + NETHER_BORDER + " blocks.").withStyle(ChatFormatting.GRAY));
     }
 
     public static void preparing(MinecraftServer server) {
@@ -150,10 +158,15 @@ public final class ServerStateManager {
             Component.literal("1 HOUR GRACE PERIOD").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
         );
         broadcast(server, Component.literal("The Chill Zone SMP has started! PvP and Overworld RTP are disabled for 1 hour.").withStyle(ChatFormatting.YELLOW));
-        broadcast(server, Component.literal("The Overworld border is expanding to 16,000 x 16,000.").withStyle(ChatFormatting.GRAY));
+        broadcast(server, Component.literal("Overworld world border: 16,000 x 16,000 blocks (expanding now).").withStyle(ChatFormatting.GRAY));
+        broadcast(server, Component.literal("Nether border: 5,000 x 5,000 | End border: 10,000 x 10,000 blocks (when opened).").withStyle(ChatFormatting.GRAY));
     }
 
     public static void tick(MinecraftServer server) {
+        // Failsafe: remove players from locked dimensions even if vanilla, another mod,
+        // or a vehicle bypasses the normal portal/teleport injection.
+        if (!state.endOpen) ejectPlayers(server, Level.END);
+        if (!state.netherOpen) ejectPlayers(server, Level.NETHER);
         if (state.serverStarted && !isGraceActive() && !state.graceEndAnnounced) {
             state.graceEndAnnounced = true;
             save();

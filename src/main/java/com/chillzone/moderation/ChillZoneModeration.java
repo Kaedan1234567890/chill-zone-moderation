@@ -171,11 +171,15 @@ public final class ChillZoneModeration implements ModInitializer {
                 }))
                 .then(Commands.literal("open")
                     .executes(ctx -> {
-                        ServerStateManager.openEnd(ctx.getSource().getServer(), null);
+                        ServerStateManager.openEnd(ctx.getSource().getServer(), "regular_open");
                         return 1;
                     })
-                    .then(Commands.argument("message", StringArgumentType.greedyString()).executes(ctx -> {
-                        ServerStateManager.openEnd(ctx.getSource().getServer(), StringArgumentType.getString(ctx, "message"));
+                    .then(Commands.literal("regular_open").executes(ctx -> {
+                        ServerStateManager.openEnd(ctx.getSource().getServer(), "regular_open");
+                        return 1;
+                    }))
+                    .then(Commands.literal("dragon_fight").executes(ctx -> {
+                        ServerStateManager.openEnd(ctx.getSource().getServer(), "dragon_fight");
                         return 1;
                     })))
             );

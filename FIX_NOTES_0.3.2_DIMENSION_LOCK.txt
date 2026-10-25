@@ -1,0 +1,8 @@
+Chill Zone Moderation 0.3.2 - dimension lock and announcement updates
+- Added ServerPlayer-specific blocking for transition and direct teleport calls.
+- Added every-tick failsafe to send players who enter locked dimensions to Overworld.
+- /end open (default regular) or /end open regular_open / /end open dragon_fight.
+- /nether open shows a title and chat border 5000 x 5000.
+- /end open shows a title and chat border 10000 x 10000.
+- /server start chat shows border values.
+WARNING: Build untested; player mixin signatures MUST be verified on 26.3 runtime. Never replace a stable production mod without a backup and private-server test.

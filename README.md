@@ -37,3 +37,9 @@ when this source is uploaded over an existing GitHub repository.
 - SUS list page 1: recent cases (30-minute window) on top row, divider row, older cases below. Later pages show older cases only.
 - SUS player heads now carry unresolved UUID profile data so skins can render.
 - Existing focused SUS evidence screen, X-ray/mining locations, and clear controls retained.
+
+
+## 0.3.3 adjustment (unbuilt)
+
+- Overworld border expansion changed from 60 seconds (1200 ticks) to 90 seconds (1800 ticks).
+- Existing closed-dimension checks and player ejection retained unchanged. This build does NOT prevent vanilla Minecraft from initializing/loading the dimension internally. Player-entry prevention needs in-game verification across portals, vehicles, and commands.
