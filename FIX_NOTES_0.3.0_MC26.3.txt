@@ -1,0 +1,6 @@
+Chill Zone Moderation 0.3.0 MC26.3 compile fix
+
+Replaced obsolete CommandSourceStack.hasPermission(4) uses for /end, /nether, /server with Permissions.canControlServer(source).
+Allows server console and players with LuckPerms chillzonemoderation.servercontrol. Does not grant access to command blocks or ordinary players.
+No other gameplay logic changed.
+Build on GitHub Actions using the included workflow.

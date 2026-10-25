@@ -162,7 +162,7 @@ public final class ChillZoneModeration implements ModInitializer {
             registerUntempban(dispatcher);
 
             dispatcher.register(Commands.literal("end")
-                .requires(s -> Permissions.has(s, Permissions.SERVER_CONTROL) || s.hasPermission(4))
+                .requires(s -> Permissions.canControlServer(s))
                 .then(Commands.literal("close").executes(ctx -> {
                     ServerStateManager.closeEnd(ctx.getSource().getServer());
                     return 1;
@@ -179,7 +179,7 @@ public final class ChillZoneModeration implements ModInitializer {
             );
 
             dispatcher.register(Commands.literal("nether")
-                .requires(s -> Permissions.has(s, Permissions.SERVER_CONTROL) || s.hasPermission(4))
+                .requires(s -> Permissions.canControlServer(s))
                 .then(Commands.literal("close").executes(ctx -> {
                     ServerStateManager.closeNether(ctx.getSource().getServer());
                     return 1;
@@ -191,7 +191,7 @@ public final class ChillZoneModeration implements ModInitializer {
             );
 
             dispatcher.register(Commands.literal("server")
-                .requires(s -> Permissions.has(s, Permissions.SERVER_CONTROL) || s.hasPermission(4))
+                .requires(s -> Permissions.canControlServer(s))
                 .then(Commands.literal("preparing").executes(ctx -> {
                     ServerStateManager.preparing(ctx.getSource().getServer());
                     return 1;
