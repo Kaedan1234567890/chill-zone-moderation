@@ -29,7 +29,7 @@ public final class Permissions {
 
     /** Server console or a player explicitly authorized by LuckPerms. */
     public static boolean canControlServer(CommandSourceStack source) {
-        return (source.getEntity() == null && source.getSource() == source.getServer())
+        return (source.getEntity() == null && "Server".equals(source.getTextName()))
                 || has(source, SERVER_CONTROL);
     }
 

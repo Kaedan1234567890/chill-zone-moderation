@@ -1,0 +1,6 @@
+Chill Zone Moderation 0.3.1 (source, untested)
+- Fix invalid CommandSourceStack.getSource() check in Permissions.java; console matched by non-entity source text name Server.
+- Filter saved player name suggestions by typed prefix (case insensitive) for /ban, /tempban and other player arguments.
+- Save player UUID/name on every join to config/chillzone-moderation/known-players.json and load alongside usercache.json.
+- Existing punishment permissions and feature logic preserved.
+- Compile on GitHub Actions; no local Gradle verification performed.

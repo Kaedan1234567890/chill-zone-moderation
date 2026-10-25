@@ -57,17 +57,19 @@ public final class ChillZoneModeration implements ModInitializer {
     );
 
     private static final SuggestionProvider<CommandSourceStack> KNOWN_PLAYERS = (ctx, b) -> {
-        for (PlayerResolver.CachedPlayer p : PlayerResolver.knownPlayers(ctx.getSource().getServer())) b.suggest(p.name());
+        for (PlayerResolver.CachedPlayer p : PlayerResolver.knownPlayers(ctx.getSource().getServer())) {
+            if (p.name().regionMatches(true, 0, b.getRemaining(), 0, b.getRemaining().length())) b.suggest(p.name());
+        }
         return b.buildFuture();
     };
     private static final SuggestionProvider<CommandSourceStack> BANNED_PLAYERS = (ctx, b) -> {
         long now = System.currentTimeMillis();
-        for (PunishmentRecord r : store.all()) if (r.ban != null && (r.ban.expiresAt == 0 || r.ban.expiresAt > now) && r.lastKnownName != null) b.suggest(r.lastKnownName);
+        for (PunishmentRecord r : store.all()) if (r.ban != null && (r.ban.expiresAt == 0 || r.ban.expiresAt > now) && r.lastKnownName != null) { if (r.lastKnownName.regionMatches(true, 0, b.getRemaining(), 0, b.getRemaining().length())) b.suggest(r.lastKnownName); }
         return b.buildFuture();
     };
     private static final SuggestionProvider<CommandSourceStack> MUTED_PLAYERS = (ctx, b) -> {
         long now = System.currentTimeMillis();
-        for (PunishmentRecord r : store.all()) if (r.mute != null && r.mute.expiresAt > now && r.lastKnownName != null) b.suggest(r.lastKnownName);
+        for (PunishmentRecord r : store.all()) if (r.mute != null && r.mute.expiresAt > now && r.lastKnownName != null) { if (r.lastKnownName.regionMatches(true, 0, b.getRemaining(), 0, b.getRemaining().length())) b.suggest(r.lastKnownName); }
         return b.buildFuture();
     };
     private static final SuggestionProvider<CommandSourceStack> MUTE_OFFENCES = (ctx, b) -> {
@@ -209,6 +211,7 @@ public final class ChillZoneModeration implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer p = handler.getPlayer();
+            PlayerResolver.remember(server, p);
             var rec = store.get(p.getUUID());
             if (rec != null && rec.ban != null) {
                 if (rec.ban.expiresAt > 0 && System.currentTimeMillis() >= rec.ban.expiresAt) {
