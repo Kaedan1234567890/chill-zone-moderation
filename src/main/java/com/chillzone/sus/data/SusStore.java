@@ -128,6 +128,30 @@ public final class SusStore {
         }
     }
 
+    /** Deletes only the deliberately saved snapshot; live flags and locations are untouched. */
+    public synchronized boolean deleteSavedSnapshot(UUID uuid) {
+        if (uuid == null || !savedSnapshots.containsKey(uuid)) return false;
+        SusRecord removed = savedSnapshots.remove(uuid);
+        try {
+            Files.createDirectories(savedFile().getParent());
+            Path temp = savedFile().resolveSibling(savedFile().getFileName() + ".tmp");
+            try (Writer writer = Files.newBufferedWriter(temp)) {
+                GSON.toJson(new ArrayList<>(savedSnapshots.values()), writer);
+            }
+            try {
+                Files.move(temp, savedFile(), java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(temp, savedFile(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            return true;
+        } catch (Exception e) {
+            savedSnapshots.put(uuid, removed);
+            System.err.println("[Chill Zone SUS] Could not delete saved snapshot: " + e.getMessage());
+            return false;
+        }
+    }
+
     public Collection<SusRecord> savedCases() { return savedSnapshots.values(); }
     public SusRecord getSaved(UUID uuid) { return savedSnapshots.get(uuid); }
 

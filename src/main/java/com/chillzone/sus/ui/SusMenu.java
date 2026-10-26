@@ -313,6 +313,14 @@ public final class SusMenu extends AbstractContainerMenu {
             save.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("Keep a separate copy even if live SUS evidence is cleared."))));
             container.setItem(51, save);
         }
+        if (savedDetail && r != null && Permissions.has(viewer, Permissions.CLEAR)) {
+            ItemStack delete = named(new ItemStack(Items.BARRIER), Component.literal("Delete Saved Evidence"));
+            delete.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Delete ONLY this saved snapshot."),
+                Component.literal("Live SUS evidence is not affected."),
+                Component.literal("Click to open confirmation."))));
+            container.setItem(53, delete);
+        }
         container.setItem(49, named(new ItemStack(Items.ARROW), Component.literal(savedDetail ? "Back to Saved Evidence" : "Back to SUS List")));
     }
 
@@ -484,6 +492,13 @@ public final class SusMenu extends AbstractContainerMenu {
             }
             if (slotId == 53 && page + 1 < pageCount) {
                 if (savedList) openSaved(viewer, store, page + 1); else openPage(viewer, store, page + 1);
+            }
+            return;
+        }
+
+        if (savedDetail && slotId == 53 && Permissions.has(viewer, Permissions.CLEAR)) {
+            if (store.getSaved(focused) != null) {
+                SavedEvidenceDeleteMenu.open(viewer, store, focused, focusedName);
             }
             return;
         }
