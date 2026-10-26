@@ -290,6 +290,29 @@ public final class SusStore {
         return false;
     }
 
+    public void markReviewed(UUID uuid) {
+        SusRecord r = get(uuid);
+        if (r != null) r.reviewedAtEpochMs = System.currentTimeMillis();
+    }
+
+    public boolean clearCategory(UUID uuid, String name, String category) {
+        SusRecord r = getOrCreate(uuid, name);
+        switch (category.toLowerCase(java.util.Locale.ROOT)) {
+            case "mining" -> {
+                clearCase(r.diamond);
+                clearCase(r.debris);
+                r.flagLocations.removeIf(loc -> "diamond".equals(loc.category) || "debris".equals(loc.category));
+            }
+            case "fly" -> clearActivity(r.fly);
+            case "speed" -> clearActivity(r.speed);
+            case "elytra" -> clearActivity(r.elytra);
+            case "all" -> { clearActive(uuid, name); return true; }
+            default -> { return false; }
+        }
+        r.reviewedAtEpochMs = 0;
+        return true;
+    }
+
     public void clearActive(UUID uuid, String name) {
         SusRecord r = getOrCreate(uuid, name);
         clearCase(r.diamond);
@@ -299,6 +322,7 @@ public final class SusStore {
         clearActivity(r.elytra);
         r.flagLocations.clear();
 
+        r.reviewedAtEpochMs = 0;
         r.suspicionScore = 0;
         r.lastFlagEpochMs = 0;
         r.cleanActiveTicks = 0;

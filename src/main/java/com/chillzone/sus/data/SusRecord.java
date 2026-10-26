@@ -7,6 +7,8 @@ import java.util.UUID;
 public final class SusRecord {
     public UUID uuid;
     public String lastKnownName;
+    // A new flag after this timestamp returns the case to Recent.
+    public long reviewedAtEpochMs;
 
     // Legacy fields retained so older chill_zone_sus.json files still load.
     public int suspicionScore;

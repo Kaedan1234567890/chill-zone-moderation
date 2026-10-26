@@ -1,0 +1,10 @@
+Chill Zone Moderation 0.3.5 — SUS GUI & review workflow (source-only build candidate)
+
+Preserved original Moderation and SUS detection algorithms from 0.3.4.
+- First page: 18 recent evidence cases (slots 0-17), 18 older/reviewed (18-35); subsequent pages show 45 older cases.
+- Recent = qualifying activity within 30 minutes AND newer than last staff review. Mark Reviewed at focused case slot 47 moves case to older without deleting data. A later new flag moves it back to recent.
+- /susclear <player> remains full clear; /susclear <player> <all|mining|fly|speed|elytra> added.
+- Remembered-player suggestions now narrow case-insensitively by username prefix for /sus and /susclear.
+- Existing 18 mining evidence locations, dimension restrictions, and detection thresholds unchanged.
+
+WARNING: Java 25/Minecraft 26.3 Gradle compilation and runtime tests were not possible here. Test on BACKUP/test server; preserve config and saves. Mark Reviewed is global to staff, not per staff member.

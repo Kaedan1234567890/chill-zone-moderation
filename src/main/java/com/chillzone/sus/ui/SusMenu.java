@@ -34,8 +34,8 @@ import java.util.UUID;
 public final class SusMenu extends AbstractContainerMenu {
     private static final int SIZE = 54;
     private static final int PLAYER_SLOTS_PER_PAGE = 45; // later pages use top five rows
-    private static final int FIRST_PAGE_OLD_SLOTS = 27;
-    private static final int RECENT_SLOTS = 9;
+    private static final int FIRST_PAGE_OLD_SLOTS = 18;
+    private static final int RECENT_SLOTS = 18;
     private static final long RECENT_WINDOW_MS = 30L * 60L * 1000L;
     private static final int[] LOCATION_SLOTS = {
         27, 28, 29, 30, 31, 32, 33, 34, 35,
@@ -119,11 +119,11 @@ public final class SusMenu extends AbstractContainerMenu {
         List<SusRecord> recent = new ArrayList<>();
         List<SusRecord> older = new ArrayList<>();
         for (SusRecord r : suspects) {
-            if (r.lastActivityEpochMs() >= recentCutoff && recent.size() < RECENT_SLOTS) recent.add(r);
+            if (r.lastActivityEpochMs() >= recentCutoff && r.lastActivityEpochMs() > r.reviewedAtEpochMs && recent.size() < RECENT_SLOTS) recent.add(r);
             else older.add(r);
         }
 
-        // First page: 9 recent + divider + 27 older.
+        // First page: 18 recent and 18 older.
         // Later pages: 45 older only.
         int remainingAfterFirst = Math.max(0, older.size() - FIRST_PAGE_OLD_SLOTS);
         pageCount = 1 + (remainingAfterFirst + PLAYER_SLOTS_PER_PAGE - 1) / PLAYER_SLOTS_PER_PAGE;
@@ -132,14 +132,6 @@ public final class SusMenu extends AbstractContainerMenu {
         if (safePage == 0) {
             for (int i = 0; i < recent.size(); i++) {
                 putPlayerHead(i, recent.get(i), true);
-            }
-
-            for (int slot = 9; slot <= 17; slot++) {
-                ItemStack divider = named(
-                    new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse("minecraft:gray_stained_glass_pane"))),
-                    Component.literal(slot == 13 ? "Older SUS Cases" : " ")
-                );
-                container.setItem(slot, divider);
             }
 
             int count = Math.min(FIRST_PAGE_OLD_SLOTS, older.size());
@@ -168,8 +160,8 @@ public final class SusMenu extends AbstractContainerMenu {
 
         ItemStack info = named(new ItemStack(Items.BOOK), Component.literal("SUS - Page " + (safePage + 1) + "/" + pageCount));
         info.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal(safePage == 0 ? "Top row: recent cases" : "Older SUS cases"),
-            Component.literal(safePage == 0 ? "Rows 3-5: older cases" : "Top 5 rows: older cases"),
+            Component.literal(safePage == 0 ? "Rows 1-2: recent flagged cases" : "Older SUS cases"),
+            Component.literal(safePage == 0 ? "Rows 3-4: reviewed / older cases" : "Top 5 rows: older cases"),
             Component.literal("Player heads use the suspect's skin/profile."),
             Component.literal("Click a player to inspect their evidence.")
         )));
@@ -264,6 +256,15 @@ public final class SusMenu extends AbstractContainerMenu {
             }
         }
 
+        if (r != null && r.hasActivity() && Permissions.has(viewer, Permissions.VIEW)) {
+            ItemStack reviewed = named(new ItemStack(Items.LIME_DYE), Component.literal("Mark Case Viewed"));
+            reviewed.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Move this case from Recent to Older."),
+                Component.literal("Evidence is NOT deleted."),
+                Component.literal("New suspicious activity brings it back to Recent.")
+            )));
+            container.setItem(47, reviewed);
+        }
         container.setItem(49, named(new ItemStack(Items.ARROW), Component.literal("Back to SUS List")));
     }
 
@@ -470,6 +471,14 @@ public final class SusMenu extends AbstractContainerMenu {
             store.clearActive(focused, name);
             store.save(viewer.level().getServer());
             viewer.sendSystemMessage(Component.literal("Cleared ALL SUS evidence and saved mining locations for " + name + "."));
+            open(viewer, store);
+            return;
+        }
+
+        if (slotId == 47 && Permissions.has(viewer, Permissions.VIEW)) {
+            store.markReviewed(focused);
+            store.save(viewer.level().getServer());
+            viewer.sendSystemMessage(Component.literal("Marked SUS case reviewed. Evidence remains saved."));
             open(viewer, store);
             return;
         }

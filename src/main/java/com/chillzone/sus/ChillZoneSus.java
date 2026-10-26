@@ -36,7 +36,8 @@ public final class ChillZoneSus implements ModInitializer {
                 if (r.lastKnownName != null) names.add(r.lastKnownName);
             }
         }
-        for (String name : names) builder.suggest(name);
+        String prefix = builder.getRemainingLowerCase();
+        for (String name : names) if (name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix)) builder.suggest(name);
         return builder.buildFuture();
     };
 
@@ -137,7 +138,29 @@ public final class ChillZoneSus implements ModInitializer {
                             false
                         );
                         return 1;
-                    }))
+                    })
+                    .then(Commands.argument("category", StringArgumentType.word())
+                        .suggests((ctx, builder) -> {
+                            String prefix = builder.getRemainingLowerCase();
+                            for (String option : new String[]{"all", "mining", "fly", "speed", "elytra"})
+                                if (option.startsWith(prefix)) builder.suggest(option);
+                            return builder.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            if (store == null) return 0;
+                            String requested = StringArgumentType.getString(ctx, "player");
+                            String category = StringArgumentType.getString(ctx, "category");
+                            PlayerResolver.ResolvedPlayer resolved = PlayerResolver.resolve(ctx.getSource().getServer(), requested);
+                            SusRecord record = resolved == null ? store.findByName(requested)
+                                : store.getOrCreate(resolved.uuid(), resolved.name());
+                            if (record == null || !store.clearCategory(record.uuid, record.lastKnownName, category)) {
+                                ctx.getSource().sendFailure(Component.literal("Unknown player or category. Use all, mining, fly, speed, or elytra."));
+                                return 0;
+                            }
+                            store.save(ctx.getSource().getServer());
+                            ctx.getSource().sendSuccess(() -> Component.literal("Cleared " + category + " SUS evidence for " + record.lastKnownName + "."), false);
+                            return 1;
+                        })))
             );
         });
     }
