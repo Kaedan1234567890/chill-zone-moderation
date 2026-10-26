@@ -1,0 +1,1 @@
+0.3.15: Diagnose failing /server start Homes season reset integration. Missing/old Homes and invocation failures now produce a clear in-game message; launch still cancels safely without resetting grace or expanding border. Bumped actual Gradle version and GitHub artifact name. Requires Homes 0.5.8+ for reset integration. Not Minecraft-build tested.

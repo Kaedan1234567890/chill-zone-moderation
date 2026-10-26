@@ -144,8 +144,14 @@ public final class ServerStateManager {
         try {
             Class<?> homes = Class.forName("com.chillzone.homes.ChillZoneHomes");
             homes.getMethod("resetFromServerStart", MinecraftServer.class).invoke(null, server);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Homes is missing. Install Chill Zone Homes 0.5.8 or newer before /server start.", e);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("Installed Homes is too old: resetFromServerStart is missing. Install Homes 0.5.8 or newer.", e);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Season launch cancelled: Homes reset integration unavailable", e);
+            Throwable cause = e instanceof java.lang.reflect.InvocationTargetException
+                ? ((java.lang.reflect.InvocationTargetException) e).getTargetException() : e;
+            throw new IllegalStateException("Homes season reset failed: " + cause.getMessage(), cause);
         }
     }
 

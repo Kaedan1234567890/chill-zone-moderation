@@ -203,8 +203,14 @@ public final class ChillZoneModeration implements ModInitializer {
                     return 1;
                 }))
                 .then(Commands.literal("start").executes(ctx -> {
-                    ServerStateManager.startServer(ctx.getSource().getServer());
-                    return 1;
+                    try {
+                        ServerStateManager.startServer(ctx.getSource().getServer());
+                        return 1;
+                    } catch (IllegalStateException e) {
+                        ctx.getSource().sendFailure(Component.literal("Server start cancelled: " + e.getMessage()));
+                        System.err.println("[Chill Zone Moderation] /server start cancelled: " + e.getMessage());
+                        return 0;
+                    }
                 }))
             );
 
