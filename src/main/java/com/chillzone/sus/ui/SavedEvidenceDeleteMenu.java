@@ -36,10 +36,10 @@ public final class SavedEvidenceDeleteMenu extends AbstractContainerMenu {
             int i = row * 9 + col;
             addSlot(new Slot(inventory, i, 8 + col * 18, 18 + row * 18));
         }
-        ItemStack cancel = new ItemStack(Items.RED_WOOL);
+        ItemStack cancel = new ItemStack(Items.REDSTONE);
         cancel.set(DataComponents.CUSTOM_NAME, Component.literal("Cancel - Keep Evidence"));
         inventory.setItem(11, cancel);
-        ItemStack confirm = new ItemStack(Items.GREEN_WOOL);
+        ItemStack confirm = new ItemStack(Items.EMERALD);
         confirm.set(DataComponents.CUSTOM_NAME, Component.literal("Confirm - Delete Saved Evidence"));
         inventory.setItem(15, confirm);
         ItemStack warning = new ItemStack(Items.BARRIER);
