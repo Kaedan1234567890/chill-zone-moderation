@@ -28,7 +28,7 @@ public final class SusInvestigation {
         }
         RETURNS.computeIfAbsent(staff.getUUID(), id -> new ReturnPoint(
             (ServerLevel) staff.level(), staff.getX(), staff.getY(), staff.getZ(),
-            staff.getYRot(), staff.getXRot(), staff.gameMode.getGameMode()));
+            staff.getYRot(), staff.getXRot(), staff.gameMode()));
         staff.stopRiding();
         staff.setGameMode(GameType.SPECTATOR);
         staff.teleportTo(destination, x, y, z, Set.of(), staff.getYRot(), staff.getXRot(), false);
