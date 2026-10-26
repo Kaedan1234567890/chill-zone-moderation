@@ -1,0 +1,1 @@
+Fixes Minecraft 26.3 compile error in SusMenu.java: replaced unavailable Items.LIME_DYE with Items.EMERALD for the Mark Case Viewed control. No other Java source changed. Compilation and runtime unverified.

@@ -257,7 +257,7 @@ public final class SusMenu extends AbstractContainerMenu {
         }
 
         if (r != null && r.hasActivity() && Permissions.has(viewer, Permissions.VIEW)) {
-            ItemStack reviewed = named(new ItemStack(Items.LIME_DYE), Component.literal("Mark Case Viewed"));
+            ItemStack reviewed = named(new ItemStack(Items.EMERALD), Component.literal("Mark Case Viewed"));
             reviewed.set(DataComponents.LORE, new ItemLore(List.of(
                 Component.literal("Move this case from Recent to Older."),
                 Component.literal("Evidence is NOT deleted."),
