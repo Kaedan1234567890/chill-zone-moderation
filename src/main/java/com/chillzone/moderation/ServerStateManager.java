@@ -138,7 +138,21 @@ public final class ServerStateManager {
         broadcast(server, Component.literal("Server preparing mode enabled. Overworld border set to 100 x 100.").withStyle(ChatFormatting.GRAY));
     }
 
+    private static void resetHomesOnce(MinecraftServer server) {
+        // Homes is a separate installed mod. Reflective call avoids a compile-time dependency;
+        // refuse to start a fresh season without the authoritative Shard reset if Homes is absent.
+        try {
+            Class<?> homes = Class.forName("com.chillzone.homes.ChillZoneHomes");
+            homes.getMethod("resetFromServerStart", MinecraftServer.class).invoke(null, server);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Season launch cancelled: Homes reset integration unavailable", e);
+        }
+    }
+
     public static void startServer(MinecraftServer server) {
+        // Reset only once per season, BEFORE touching grace or border. An existing marker
+        // prevents all subsequent /server start executions from wiping earned Shards.
+        resetHomesOnce(server);
         ServerLevel overworld = server.overworld();
         server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "time set 0");
 
