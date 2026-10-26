@@ -1,0 +1,1 @@
+Fixed gradle.properties mod_version from 0.3.5 to 0.3.9. GitHub artifact now chill-zone-moderation-0.3.9. Expected main JAR: chill-zone-moderation-0.3.9.jar. Remove the old JAR before installing the newly compiled JAR. No gameplay code changed.

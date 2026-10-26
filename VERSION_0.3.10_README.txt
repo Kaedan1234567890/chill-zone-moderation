@@ -1,0 +1,6 @@
+Chill Zone Moderation 0.3.10 — filename correction only.
+Expected GitHub artifact: chill-zone-moderation-0.3.10-mc26.3
+Expected runtime JAR: chill-zone-moderation-mc26.3-0.3.10.jar
+Only install this runtime JAR, after deleting the older Chill Zone Moderation JAR.
+Preserves Fabric mod ID chill_zone_moderation. Never install multiple versions together.
+Full compilation and runtime verification not performed.
