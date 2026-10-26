@@ -1,0 +1,3 @@
+Chill Zone Moderation 0.3.14 / Minecraft 26.3
+Actual Gradle mod_version updated to 0.3.14. Expected production JAR: build/libs/chill-zone-moderation-mc26.3-0.3.14.jar. GitHub artifact label updated to 0.3.14 and upload path aligned to exact generated JAR. Preserves 0.3.13 Homes season reset integration.
+GitHub source ZIP only; compile and in-game behavior not verified here.
