@@ -1,5 +1,6 @@
 package com.chillzone.sus.ui;
 
+import com.chillzone.sus.SusInvestigation;
 import com.chillzone.sus.data.SusRecord;
 import com.chillzone.sus.data.SusStore;
 import com.chillzone.sus.permission.Permissions;
@@ -554,13 +555,9 @@ public final class SusMenu extends AbstractContainerMenu {
                 viewer.sendSystemMessage(Component.literal("That evidence world is not currently available."));
                 return;
             }
-            viewer.teleportTo(
-                destination,
-                location.x, location.y + 0.5, location.z,
-                Set.of(), viewer.getYRot(), viewer.getXRot(), false
-            );
+            SusInvestigation.begin(viewer, destination,
+                location.x, location.y + 0.5, location.z);
             viewer.closeContainer();
-            viewer.sendSystemMessage(Component.literal("Teleported to saved SUS evidence location."));
             return;
         }
 

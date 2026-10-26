@@ -149,6 +149,8 @@ public final class ServerStateManager {
         );
 
         state.serverStarted = true;
+        // A fresh launch always starts one new one-hour grace interval.
+        // Repeated /server start commands still reset the hour; preparing clears it.
         state.graceEndsAtEpochMs = System.currentTimeMillis() + GRACE_MILLIS;
         state.graceEndAnnounced = false;
         save();

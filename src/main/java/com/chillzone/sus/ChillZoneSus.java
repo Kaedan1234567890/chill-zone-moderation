@@ -7,6 +7,7 @@ import com.chillzone.sus.detect.AntiFlyEvidenceBridge;
 import com.chillzone.sus.detect.SusDetector;
 import com.chillzone.sus.permission.Permissions;
 import com.chillzone.sus.ui.SusMenu;
+import com.chillzone.sus.SusInvestigation;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.fabricmc.api.ModInitializer;
@@ -62,6 +63,7 @@ public final class ChillZoneSus implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (store != null) store.save(server);
+            SusInvestigation.clear();
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -111,6 +113,10 @@ public final class ChillZoneSus implements ModInitializer {
                         return 1;
                     }))
             );
+
+            dispatcher.register(Commands.literal("susback")
+                .requires(source -> Permissions.has(source, Permissions.TELEPORT))
+                .executes(ctx -> SusInvestigation.back(ctx.getSource().getPlayerOrException()) ? 1 : 0));
 
             dispatcher.register(Commands.literal("susclear")
                 .requires(source -> Permissions.has(source, Permissions.CLEAR))
