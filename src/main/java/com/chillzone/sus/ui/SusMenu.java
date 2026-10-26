@@ -48,16 +48,25 @@ public final class SusMenu extends AbstractContainerMenu {
     private final Map<Integer, UUID> playerSlots = new HashMap<>();
     private final Map<Integer, SusRecord.FlagLocation> locationSlots = new HashMap<>();
     private final UUID focused;
+    private final boolean savedList;
+    private final boolean savedDetail;
     private final String focusedName;
     private final int page;
     private int pageCount = 1;
 
     private SusMenu(int syncId, Inventory inv, ServerPlayer viewer, SusStore store,
                     UUID focused, String focusedName, int page) {
+        this(syncId, inv, viewer, store, focused, focusedName, page, false, false);
+    }
+
+    private SusMenu(int syncId, Inventory inv, ServerPlayer viewer, SusStore store,
+                    UUID focused, String focusedName, int page, boolean savedList, boolean savedDetail) {
         super(MenuType.GENERIC_9x6, syncId);
         this.viewer = viewer;
         this.store = store;
         this.focused = focused;
+        this.savedList = savedList;
+        this.savedDetail = savedDetail;
         this.focusedName = focusedName;
         this.page = Math.max(0, page);
         this.container = new SimpleContainer(SIZE);
@@ -94,6 +103,18 @@ public final class SusMenu extends AbstractContainerMenu {
         openPlayer(staff, target.getUUID(), target.getGameProfile().name(), store);
     }
 
+    private static void openSaved(ServerPlayer player, SusStore store, int page) {
+        player.openMenu(new SimpleMenuProvider((syncId, inv, p) ->
+            new SusMenu(syncId, inv, player, store, null, null, page, true, false),
+            Component.literal("SUS - Saved Evidence")));
+    }
+
+    private static void openSavedPlayer(ServerPlayer player, SusStore store, UUID uuid, String name) {
+        player.openMenu(new SimpleMenuProvider((syncId, inv, p) ->
+            new SusMenu(syncId, inv, player, store, uuid, name, 0, false, true),
+            Component.literal("SUS - Saved: " + name)));
+    }
+
     private void build() {
         // No glass anywhere above the bottom row. The bottom row remains the
         // dedicated control/navigation strip, with real buttons replacing glass.
@@ -103,8 +124,22 @@ public final class SusMenu extends AbstractContainerMenu {
         );
         for (int slot = 45; slot < SIZE; slot++) container.setItem(slot, filler.copy());
 
-        if (focused == null) buildList();
+        if (savedList) buildSavedList();
+        else if (focused == null) buildList();
         else buildFocused();
+    }
+
+    private void buildSavedList() {
+        List<SusRecord> cases = new ArrayList<>(store.savedCases());
+        cases.sort(Comparator.comparingLong((SusRecord r) -> r.lastActivityEpochMs()).reversed());
+        pageCount = Math.max(1, (cases.size() + 44) / 45);
+        int safePage = Math.min(page, pageCount - 1);
+        for (int i = safePage * 45; i < Math.min(cases.size(), (safePage + 1) * 45); i++) {
+            putPlayerHead(i - safePage * 45, cases.get(i), false);
+        }
+        if (safePage > 0) container.setItem(45, named(new ItemStack(Items.ARROW), Component.literal("Previous Page")));
+        if (safePage + 1 < pageCount) container.setItem(53, named(new ItemStack(Items.ARROW), Component.literal("Next Page")));
+        container.setItem(49, named(new ItemStack(Items.ARROW), Component.literal("Back to SUS List")));
     }
 
     private void buildList() {
@@ -130,13 +165,15 @@ public final class SusMenu extends AbstractContainerMenu {
         int safePage = Math.min(page, pageCount - 1);
 
         if (safePage == 0) {
+            ItemStack divider = named(new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse("minecraft:gray_stained_glass_pane"))), Component.literal("Recent cases above / Older cases below"));
+            for (int slot = 18; slot < 27; slot++) container.setItem(slot, divider.copy());
             for (int i = 0; i < recent.size(); i++) {
                 putPlayerHead(i, recent.get(i), true);
             }
 
             int count = Math.min(FIRST_PAGE_OLD_SLOTS, older.size());
             for (int i = 0; i < count; i++) {
-                putPlayerHead(18 + i, older.get(i), false);
+                putPlayerHead(27 + i, older.get(i), false);
             }
 
             if (recent.isEmpty() && older.isEmpty()) {
@@ -161,11 +198,16 @@ public final class SusMenu extends AbstractContainerMenu {
         ItemStack info = named(new ItemStack(Items.BOOK), Component.literal("SUS - Page " + (safePage + 1) + "/" + pageCount));
         info.set(DataComponents.LORE, new ItemLore(List.of(
             Component.literal(safePage == 0 ? "Rows 1-2: recent flagged cases" : "Older SUS cases"),
-            Component.literal(safePage == 0 ? "Rows 3-4: reviewed / older cases" : "Top 5 rows: older cases"),
+            Component.literal(safePage == 0 ? "Rows 4-5: reviewed / older cases" : "Top 5 rows: older cases"),
             Component.literal("Player heads use the suspect's skin/profile."),
             Component.literal("Click a player to inspect their evidence.")
         )));
         container.setItem(49, info);
+        if (safePage == 0) {
+            ItemStack saved = named(new ItemStack(Items.WRITABLE_BOOK), Component.literal("Saved Evidence"));
+            saved.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("Only cases explicitly saved by staff appear here."))));
+            container.setItem(47, saved);
+        }
 
         if (safePage + 1 < pageCount) {
             container.setItem(53, named(new ItemStack(Items.ARROW), Component.literal("Next Page")));
@@ -184,7 +226,7 @@ public final class SusMenu extends AbstractContainerMenu {
     }
 
     private void buildFocused() {
-        SusRecord r = store.get(focused);
+        SusRecord r = savedDetail ? store.getSaved(focused) : store.get(focused);
         String name = r != null && r.lastKnownName != null ? r.lastKnownName
             : (focusedName == null ? "Unknown Player" : focusedName);
 
@@ -256,7 +298,7 @@ public final class SusMenu extends AbstractContainerMenu {
             }
         }
 
-        if (r != null && r.hasActivity() && Permissions.has(viewer, Permissions.VIEW)) {
+        if (!savedDetail && r != null && r.hasActivity() && Permissions.has(viewer, Permissions.VIEW)) {
             ItemStack reviewed = named(new ItemStack(Items.EMERALD), Component.literal("Mark Case Viewed"));
             reviewed.set(DataComponents.LORE, new ItemLore(List.of(
                 Component.literal("Move this case from Recent to Older."),
@@ -265,7 +307,12 @@ public final class SusMenu extends AbstractContainerMenu {
             )));
             container.setItem(47, reviewed);
         }
-        container.setItem(49, named(new ItemStack(Items.ARROW), Component.literal("Back to SUS List")));
+        if (!savedDetail && r != null && r.hasActivity() && Permissions.has(viewer, Permissions.VIEW)) {
+            ItemStack save = named(new ItemStack(Items.CHEST), Component.literal("Save Evidence Snapshot"));
+            save.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("Keep a separate copy even if live SUS evidence is cleared."))));
+            container.setItem(51, save);
+        }
+        container.setItem(49, named(new ItemStack(Items.ARROW), Component.literal(savedDetail ? "Back to Saved Evidence" : "Back to SUS List")));
     }
 
     private static ItemStack evidenceItem(ItemStack stack, String name, List<Component> lore) {
@@ -421,18 +468,21 @@ public final class SusMenu extends AbstractContainerMenu {
         if (slotId < 0 || slotId >= SIZE) return;
 
         if (focused == null) {
+            if (savedList && slotId == 49) { open(viewer, store); return; }
+            if (!savedList && slotId == 47) { openSaved(viewer, store, 0); return; }
             UUID uuid = playerSlots.get(slotId);
             if (uuid != null) {
-                SusRecord r = store.get(uuid);
-                openPlayer(viewer, uuid, r == null ? "Unknown Player" : r.lastKnownName, store);
+                SusRecord r = savedList ? store.getSaved(uuid) : store.get(uuid);
+                if (savedList) openSavedPlayer(viewer, store, uuid, r == null ? "Unknown Player" : r.lastKnownName);
+                else openPlayer(viewer, uuid, r == null ? "Unknown Player" : r.lastKnownName, store);
                 return;
             }
             if (slotId == 45 && page > 0) {
-                openPage(viewer, store, page - 1);
+                if (savedList) openSaved(viewer, store, page - 1); else openPage(viewer, store, page - 1);
                 return;
             }
             if (slotId == 53 && page + 1 < pageCount) {
-                openPage(viewer, store, page + 1);
+                if (savedList) openSaved(viewer, store, page + 1); else openPage(viewer, store, page + 1);
             }
             return;
         }
@@ -465,7 +515,7 @@ public final class SusMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (slotId == 16 && Permissions.has(viewer, Permissions.CLEAR)) {
+        if (!savedDetail && slotId == 16 && Permissions.has(viewer, Permissions.CLEAR)) {
             String name = target != null ? target.getGameProfile().name()
                 : Optional.ofNullable(store.get(focused)).map(x -> x.lastKnownName).orElse("player");
             store.clearActive(focused, name);
@@ -475,7 +525,15 @@ public final class SusMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (slotId == 47 && Permissions.has(viewer, Permissions.VIEW)) {
+        if (!savedDetail && slotId == 51 && Permissions.has(viewer, Permissions.VIEW)) {
+            if (store.saveSnapshot(focused)) {
+                viewer.sendSystemMessage(Component.literal("Saved a separate SUS evidence snapshot."));
+            }
+            openPlayer(viewer, focused, focusedName, store);
+            return;
+        }
+
+        if (!savedDetail && slotId == 47 && Permissions.has(viewer, Permissions.VIEW)) {
             store.markReviewed(focused);
             store.save(viewer.level().getServer());
             viewer.sendSystemMessage(Component.literal("Marked SUS case reviewed. Evidence remains saved."));
@@ -506,7 +564,7 @@ public final class SusMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (slotId == 49) open(viewer, store);
+        if (slotId == 49) { if (savedDetail) openSaved(viewer, store, 0); else open(viewer, store); }
     }
 
     private static ItemStack named(ItemStack stack, Component name) {

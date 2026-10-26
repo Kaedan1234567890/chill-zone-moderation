@@ -1,0 +1,9 @@
+Chill Zone Moderation 0.3.7 - SUS case management (UNTESTED)
+
+- Main /sus page: 18 recent case slots (rows 1-2), gray-pane divider (row 3), 18 older/reviewed case slots (rows 4-5); bottom navigation. Later pages display older cases.
+- Saved Evidence shortcut at slot 47 (two slots left of book). Separate paginated saved-case menu.
+- Save Evidence Snapshot at slot 51 opposite Mark Viewed at slot 47. Snapshots copy evidence at the moment staff explicitly saves; separate file config/chill_zone_sus_saved_evidence.json. Live /susclear does NOT clear saved snapshots.
+- Category clear resets current-category counters/flags and ore locations for mining; does not modify saved snapshots.
+- Core mining detector and AntiFly event bridge preserved. Movement categories depend on the AntiFly integration raising callback events; installation and detection should be verified before making any movement heuristics stricter.
+
+CAUTION: This source has NOT been compiled or server-tested against 26.3. Back up config/chill_zone_sus.json before installing. The working moderation/dimension logic was not intentionally changed.

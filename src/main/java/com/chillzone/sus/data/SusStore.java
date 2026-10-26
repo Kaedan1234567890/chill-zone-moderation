@@ -26,6 +26,7 @@ public final class SusStore {
     private static final String RESET_MARKER = "chill_zone_sus_evidence_reset_moderation_0_2_11.done";
 
     private final Map<UUID, SusRecord> records = new ConcurrentHashMap<>();
+    private final Map<UUID, SusRecord> savedSnapshots = new ConcurrentHashMap<>();
     private long ticksSinceSave;
 
     public static SusStore load(MinecraftServer server) {
@@ -64,6 +65,7 @@ public final class SusStore {
             }
         }
 
+        store.loadSnapshots();
         return store;
     }
 
@@ -107,6 +109,42 @@ public final class SusStore {
             }
         } catch (Exception e) {
             System.err.println("[Chill Zone SUS] Could not save data: " + e.getMessage());
+        }
+    }
+
+    private static Path savedFile() {
+        return FabricLoader.getInstance().getConfigDir().resolve("chill_zone_sus_saved_evidence.json");
+    }
+
+    private void loadSnapshots() {
+        if (!Files.exists(savedFile())) return;
+        try (Reader reader = Files.newBufferedReader(savedFile())) {
+            List<SusRecord> loaded = GSON.fromJson(reader, new TypeToken<List<SusRecord>>(){}.getType());
+            if (loaded != null) for (SusRecord r : loaded) {
+                if (r != null && r.uuid != null) { normalize(r); savedSnapshots.put(r.uuid, r); }
+            }
+        } catch (Exception e) {
+            System.err.println("[Chill Zone SUS] Could not load saved case snapshots: " + e.getMessage());
+        }
+    }
+
+    public Collection<SusRecord> savedCases() { return savedSnapshots.values(); }
+    public SusRecord getSaved(UUID uuid) { return savedSnapshots.get(uuid); }
+
+    public synchronized boolean saveSnapshot(UUID uuid) {
+        SusRecord current = get(uuid);
+        if (current == null || !current.hasActivity()) return false;
+        SusRecord snapshot = GSON.fromJson(GSON.toJson(current), SusRecord.class);
+        savedSnapshots.put(uuid, snapshot);
+        try {
+            Files.createDirectories(savedFile().getParent());
+            try (Writer writer = Files.newBufferedWriter(savedFile())) {
+                GSON.toJson(new ArrayList<>(savedSnapshots.values()), writer);
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("[Chill Zone SUS] Failed to save evidence snapshot: " + e.getMessage());
+            return false;
         }
     }
 
@@ -310,6 +348,9 @@ public final class SusStore {
             default -> { return false; }
         }
         r.reviewedAtEpochMs = 0;
+        r.suspicionScore = 0;
+        r.lastFlagEpochMs = r.lastActivityEpochMs();
+        r.recentFlagTimes.clear();
         return true;
     }
 
@@ -357,7 +398,7 @@ public final class SusStore {
     }
 
     private static void clearCase(SusRecord.OreCase c) {
-        c.archivedPoints += Math.max(0, c.suspicionScore);
+        c.archivedPoints = 0;
         c.suspicionScore = 0;
         c.activeFlags = 0;
         c.lastFlagEpochMs = 0;
