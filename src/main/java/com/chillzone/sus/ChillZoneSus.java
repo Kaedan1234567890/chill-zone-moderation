@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.LinkedHashSet;
@@ -45,6 +46,7 @@ public final class ChillZoneSus implements ModInitializer {
             store = SusStore.load(server);
             SusDetector.init(store);
             AntiFlyEvidenceBridge.init(store);
+            System.out.println("[Chill Zone SUS] Ready: " + store.trackedCount() + " tracked players; " + store.flaggedCount() + " flagged cases. AntiFly installed: " + FabricLoader.getInstance().isModLoaded("antifly"));
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -66,9 +68,26 @@ public final class ChillZoneSus implements ModInitializer {
                 .requires(source -> Permissions.has(source, Permissions.VIEW))
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
+                    if (store == null) { ctx.getSource().sendFailure(Component.literal("SUS data not loaded yet.")); return 0; }
                     SusMenu.open(player, store);
                     return 1;
                 })
+                .then(Commands.literal("status")
+                    .executes(ctx -> {
+                        if (store == null) {
+                            ctx.getSource().sendFailure(Component.literal("SUS store has not initialized."));
+                            return 0;
+                        }
+                        boolean antifly = FabricLoader.getInstance().isModLoaded("antifly");
+                        ctx.getSource().sendSuccess(() -> Component.literal(
+                            "SUS: " + store.flaggedCount() + " flagged players / " + store.trackedCount() + " tracked. "
+                            + "Observed breaks since start: " + SusDetector.observedBreaks()
+                            + ", diamond/debris breaks: " + SusDetector.observedOreBreaks()
+                            + ". AntiFly installed: " + antifly
+                            + ". Only qualifying suspicion events appear in the list."
+                        ), false);
+                        return 1;
+                    }))
                 .then(Commands.argument("player", StringArgumentType.word())
                     .suggests(KNOWN_PLAYERS)
                     .executes(ctx -> {

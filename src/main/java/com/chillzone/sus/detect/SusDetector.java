@@ -15,13 +15,21 @@ public final class SusDetector {
     private static final long SAME_VEIN_MS = 45_000L;
     private static final int VEIN_DISTANCE = 5;
     private static SusStore store;
+    private static long observedBreaks;
+    private static long observedOreBreaks;
+    public static long observedBreaks() { return observedBreaks; }
+    public static long observedOreBreaks() { return observedOreBreaks; }
 
     private SusDetector() {}
 
     public static void init(SusStore s) {
         store = s;
+        observedBreaks = 0;
+        observedOreBreaks = 0;
         PlayerBlockBreakEvents.AFTER.register((level, player, pos, state, be) -> {
-            if (!(player instanceof ServerPlayer sp)) return;
+            if (!(player instanceof ServerPlayer sp) || store == null) return;
+            if (sp.isCreative() || sp.isSpectator()) return;
+            observedBreaks++;
 
             SusRecord r = store.getOrCreate(sp.getUUID(), sp.getGameProfile().name());
             String type = oreType(state);
@@ -33,6 +41,7 @@ public final class SusDetector {
                 return;
             }
 
+            observedOreBreaks++;
             record(sp, r, type, pos, level, System.currentTimeMillis());
         });
     }

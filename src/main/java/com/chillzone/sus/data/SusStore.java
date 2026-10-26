@@ -142,6 +142,12 @@ public final class SusStore {
         return null;
     }
 
+    public long flaggedCount() {
+        return records.values().stream().filter(r -> { normalize(r); return r.hasActivity(); }).count();
+    }
+
+    public int trackedCount() { return records.size(); }
+
     public Collection<SusRecord> all() {
         for (SusRecord r : records.values()) normalize(r);
         return records.values();
@@ -198,6 +204,7 @@ public final class SusStore {
         c.lastNearbyBoats = nearbyBoats;
         c.lastNearbyEntities = nearbyEntities;
         c.lastVehicle = vehicle == null || vehicle.isBlank() ? "None" : vehicle;
+        // Mark only genuine check events as suspicious, including for recent-case sorting.
 
         // Movement detections remain visible in the activity cards, but must
         // never create teleportable evidence locations.
