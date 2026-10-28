@@ -14,6 +14,7 @@ public final class Permissions {
     public static final String UNBAN = "chillzonemoderation.unban";
     public static final String MUTE = "chillzonemoderation.mute";
     public static final String FREEZE = "chillzonemoderation.freeze";
+    public static final String STAFF_TELEPORT = "chillzonemoderation.staffteleport";
     public static final String SERVER_CONTROL = "chillzonemoderation.servercontrol";
 
     public static boolean has(CommandSourceStack source, String permission) {

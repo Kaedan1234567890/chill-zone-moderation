@@ -62,6 +62,17 @@ public final class ChillZoneModeration implements ModInitializer {
         }
         return b.buildFuture();
     };
+    private static final SuggestionProvider<CommandSourceStack> TP_PLAYERS = (ctx, builder) -> {
+        String query = builder.getRemaining().toLowerCase(Locale.ROOT);
+        Set<String> seen = new HashSet<>();
+        for (PlayerResolver.CachedPlayer p : PlayerResolver.knownPlayers(ctx.getSource().getServer())) {
+            String name = p.name();
+            if (name.toLowerCase(Locale.ROOT).contains(query) && seen.add(name.toLowerCase(Locale.ROOT)))
+                builder.suggest(name);
+        }
+        return builder.buildFuture();
+    };
+
     private static final SuggestionProvider<CommandSourceStack> BANNED_PLAYERS = (ctx, b) -> {
         long now = System.currentTimeMillis();
         for (PunishmentRecord r : store.all()) if (r.ban != null && (r.ban.expiresAt == 0 || r.ban.expiresAt > now) && r.lastKnownName != null) { if (r.lastKnownName.regionMatches(true, 0, b.getRemaining(), 0, b.getRemaining().length())) b.suggest(r.lastKnownName); }
@@ -113,6 +124,16 @@ public final class ChillZoneModeration implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> ServerStateManager.load());
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> ServerStateManager.save());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            // Staff forced teleport: all online targets are eligible, including names remembered
+            // from previous sessions. Offline history is for autocomplete, not offline teleportation.
+            dispatcher.register(Commands.literal("tpto")
+                .requires(src -> Permissions.has(src, Permissions.STAFF_TELEPORT))
+                .then(Commands.argument("player", StringArgumentType.word()).suggests(TP_PLAYERS)
+                    .executes(ctx -> staffTeleport(ctx.getSource(), StringArgumentType.getString(ctx, "player"), false))));
+            dispatcher.register(Commands.literal("tphere")
+                .requires(src -> Permissions.has(src, Permissions.STAFF_TELEPORT))
+                .then(Commands.argument("player", StringArgumentType.word()).suggests(TP_PLAYERS)
+                    .executes(ctx -> staffTeleport(ctx.getSource(), StringArgumentType.getString(ctx, "player"), true))));
             dispatcher.register(Commands.literal("warn").requires(s -> Permissions.has(s, Permissions.WARN))
                 .then(Commands.argument("player", StringArgumentType.word()).suggests(KNOWN_PLAYERS)
                     .then(Commands.argument("reason", StringArgumentType.greedyString()).executes(ctx -> {
@@ -310,6 +331,41 @@ public final class ChillZoneModeration implements ModInitializer {
                 );
             }
         }
+    }
+
+    private static int staffTeleport(CommandSourceStack source, String targetName, boolean bringHere) {
+        ServerPlayer staff;
+        try {
+            staff = source.getPlayerOrException();
+        } catch (Exception e) {
+            source.sendFailure(Component.literal("This command must be run by a staff player."));
+            return 0;
+        }
+        PlayerResolver.ResolvedPlayer remembered = PlayerResolver.resolve(source.getServer(), targetName);
+        if (remembered == null) {
+            source.sendFailure(Component.literal("Unknown player: they must have joined the server before."));
+            return 0;
+        }
+        ServerPlayer target = remembered.onlinePlayer();
+        if (target == null) {
+            source.sendFailure(Component.literal(remembered.name() + " is remembered but offline. Staff teleport requires an online player."));
+            return 0;
+        }
+        ServerPlayer moving = bringHere ? target : staff;
+        ServerPlayer destination = bringHere ? staff : target;
+        // Use the same server-side teleport API as the existing Moderation freeze system.
+        // DimensionLockMixin retains authority when the destination dimension is closed.
+        boolean moved = moving.teleportTo((ServerLevel) destination.level(),
+            destination.getX(), destination.getY(), destination.getZ(),
+            Set.of(), destination.getYRot(), destination.getXRot(), false);
+        if (!moved) {
+            source.sendFailure(Component.literal("Teleport denied (possibly a closed dimension)."));
+            return 0;
+        }
+        String message = bringHere ? "Brought " + target.getGameProfile().name() + " to you."
+            : "Teleported to " + target.getGameProfile().name() + ".";
+        source.sendSuccess(() -> Component.literal(message), false);
+        return 1;
     }
 
     private static void registerBan(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d,String root){ d.register(Commands.literal(root).requires(s->Permissions.has(s,Permissions.BAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(KNOWN_PLAYERS).then(Commands.argument("reason",StringArgumentType.greedyString()).suggests(BAN_REASONS).executes(ctx->{ServerPlayer staff=ctx.getSource().getPlayerOrException();var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;String reason=StringArgumentType.getString(ctx,"reason");var r=store.getOrCreate(t.uuid(),t.name());var b=new PunishmentRecord.BanEntry();b.reason=reason;b.staff=staff.getGameProfile().name();b.issuedAt=System.currentTimeMillis();b.expiresAt=0;r.ban=b;store.save();if(t.onlinePlayer()!=null)t.onlinePlayer().connection.disconnect(banMessage(r));ctx.getSource().sendSuccess(()->Component.literal("Permanently banned "+t.name()+". Reason: "+reason),false);return 1;})))); }
