@@ -33,13 +33,13 @@ public final class ChillZoneModeration implements ModInitializer {
     // Preset punishments. "hacking" and "other" are handled as special branches below.
     private static final List<Preset> PRESETS = List.of(
         new Preset("xray", "X-Ray", "3d"),
-        new Preset("duping", "Duping / Item Exploits", "14d"),
+        new Preset("duping", "Duping / Item Exploits", "2d"),
         new Preset("severe_exploiting", "Severe Exploiting", "14d"),
         new Preset("major_griefing", "Major Griefing", "2d"),
         new Preset("minor_griefing", "Minor Griefing", "12h"),
         new Preset("spawn_killing", "Spawn Killing", "5h"),
-        new Preset("event_disruption", "Event Disruption", "5d"),
-        new Preset("harassment", "Harassment", "1d"),
+        new Preset("event_disruption", "Event Disruption", "5h"),
+        new Preset("harassment", "Harassment", "1h"),
         new Preset("ban_evasion", "Ban Evasion", "14d")
     );
 
