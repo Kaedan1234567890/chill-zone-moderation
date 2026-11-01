@@ -124,6 +124,7 @@ public final class ChillZoneModeration implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> ServerStateManager.load());
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> ServerStateManager.save());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            SpawnAndHelp.register(dispatcher);
             // Staff forced teleport: all online targets are eligible, including names remembered
             // from previous sessions. Offline history is for autocomplete, not offline teleportation.
             dispatcher.register(Commands.literal("tpto")
