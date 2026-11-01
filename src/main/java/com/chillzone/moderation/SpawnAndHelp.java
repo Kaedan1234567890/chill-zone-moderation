@@ -66,6 +66,8 @@ public final class SpawnAndHelp {
             .executes(ctx -> showHelp(ctx.getSource(), "general"))
             .then(Commands.literal("general").executes(ctx -> showHelp(ctx.getSource(), "general")))
             .then(Commands.literal("teleportation").executes(ctx -> showHelp(ctx.getSource(), "teleportation")))
+            .then(Commands.literal("lifesteal").executes(ctx -> showHelp(ctx.getSource(), "lifesteal")))
+            .then(Commands.literal("pvp").executes(ctx -> showHelp(ctx.getSource(), "lifesteal")))
             .then(Commands.literal("moderation").requires(s -> Permissions.has(s, Permissions.WARN))
                 .executes(ctx -> showHelp(ctx.getSource(), "moderation")))
             .then(Commands.literal("admin").requires(s -> Permissions.has(s, Permissions.STAFF_TELEPORT))
@@ -78,16 +80,71 @@ public final class SpawnAndHelp {
         return s.getEntity() == null || Permissions.has(s, Permissions.SPAWN_SET);
     }
 
+    /** Only help descriptions are changed in 0.3.19. Keep the established header and body styling. */
     private static int showHelp(CommandSourceStack s, String section) {
-        s.sendSuccess(() -> Component.literal("Chill Zone SMP | " + section.toUpperCase()).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-        String desc = switch (section) {
-            case "teleportation" -> "/spawn - server spawn  |  /home, /homes, /sethome, /delhome - homes  |  /tpa, /tpaccept, /tpdeny - requests";
-            case "moderation" -> "/warn, /warnings, /mute, /unmute, /freeze, /unfreeze, /punishments, /sus, /susclear, /susback";
-            case "admin" -> "/tpto, /tphere - staff teleport  |  /vanish - staff vanish (permission controlled)  |  /ban, /tempban, /unban";
-            case "owner" -> "/spawn set [x y z], /spawn set create  |  /server preparing, /server start  |  /end open, /end close  |  /nether open, /nether close  |  /leaderboards reset confirm  |  /lifesteal admin";
-            default -> "/shop - Shards shop  |  /homes - saved homes  |  /rules - rules  |  /discord - community  |  /leaderboards - stats  |  /lifesteal hearts, /lifesteal list, /lifesteal craftstatus  |  /teams - allies  |  /help teleportation, /help moderation, /help admin, /help owner";
+        s.sendSuccess(() -> Component.literal("Chill Zone SMP | " + section.toUpperCase())
+            .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        String[] lines = switch (section) {
+            case "teleportation" -> new String[] {
+                "/spawn - Teleport to spawn after 1 second",
+                "/homes - Open the home menu | /home <name> - Go to a saved home",
+                "/sethome <name> - Create a home | /delhome <name> - Delete one",
+                "/tpa <player> - Request teleport | /tpahere <player> - Ask player to come to you",
+                "/tpaccept - Accept request | /tpdeny - Decline request"
+            };
+            case "lifesteal" -> new String[] {
+                "/lifesteal hearts - Show your current hearts",
+                "/lifesteal list - Show Top 10 Lifesteal hearts",
+                "/lifesteal craftstatus - See today's 3-Heart crafting limit",
+                "/lifesteal recipe heart - Heart recipe",
+                "/lifesteal recipe beacon - Revive Beacon recipe",
+                "/withdraw <amount> - Withdraw your hearts as items",
+                "/leaderboards - View kills, deaths, playtime and other rankings",
+                "Combat-tagged players cannot use teleportation commands"
+            };
+            case "moderation" -> new String[] {
+                "/warn, /warnings - Issue and review warnings",
+                "/mute, /unmute - Manage player mutes",
+                "/freeze, /unfreeze - Freeze or release a player",
+                "/sus - Suspected activity GUI | /sus <player> - Review a player",
+                "/susclear <player> - Clear evidence | /susback - Return from evidence",
+                "/punishments <player> - Review punishment records"
+            };
+            case "admin" -> new String[] {
+                "/vanish - Staff vanish (requires Vanish mod access)",
+                "/czban, /czunban - Permanent ban controls",
+                "/tempban, /untempban - Temporary ban controls",
+                "/punishments - Punishment history",
+                "/tpto, /tphere - Staff teleportation tools"
+            };
+            case "owner" -> new String[] {
+                "/spawn set - Set spawn here | /spawn set create - Same location",
+                "/spawn set <x> <y> <z> - Set spawn with coordinates",
+                "/server preparing, /server start - Launch and grace-period controls",
+                "/end open, /end close | /nether open, /nether close",
+                "/leaderboards reset confirm - Reset tracked leaderboard progress",
+                "/lifesteal admin menu - Open Lifesteal settings",
+                "/lifesteal admin skip - Reset Heart craft counter",
+                "/lifesteal admin sethearts, giveheart, giverevivebeacon",
+                "/lifesteal admin containers, revive, combat status",
+                "/lifesteal admin pvp, pvploss, naturalloss, deathbans",
+                "/lifesteal admin reset CONFIRM - Reset Lifesteal data"
+            };
+            default -> new String[] {
+                "/help general, teleportation, lifesteal, moderation, admin, owner",
+                "/rules - Server rules | /shop - Shard shop",
+                "/leaderboards - Player statistics GUI",
+                "/homes, /home, /sethome, /delhome - Home management",
+                "/spawn, /tpa, /tpaccept, /tpdeny - Teleportation",
+                "/lifesteal hearts, list, craftstatus - Heart information",
+                "/lifesteal recipe heart, recipe beacon, /withdraw - Heart items",
+                "/teams - Team management (if enabled)",
+                "Use /help teleportation or /help lifesteal for details"
+            };
         };
-        s.sendSuccess(() -> Component.literal(desc).withStyle(ChatFormatting.YELLOW), false);
+        for (String line : lines) {
+            s.sendSuccess(() -> Component.literal(line).withStyle(ChatFormatting.YELLOW), false);
+        }
         return 1;
     }
 
