@@ -64,7 +64,7 @@ public final class SpawnAndHelp {
                                 DoubleArgumentType.getDouble(ctx, "z"))))))));
         // Explicit alias guarantees players can test Moderation's help, even when another mod owns /help.
         dispatcher.register(Commands.literal("czhelp")
-            .executes(ctx -> showHelp(ctx.getSource(), "general"))
+            .executes(ctx -> showHelp(ctx.getSource(), "all"))
             .then(Commands.literal("general").executes(ctx -> showHelp(ctx.getSource(), "general")))
             .then(Commands.literal("teleportation").executes(ctx -> showHelp(ctx.getSource(), "teleportation")))
             .then(Commands.literal("lifesteal").executes(ctx -> showHelp(ctx.getSource(), "lifesteal")))
@@ -91,7 +91,7 @@ public final class SpawnAndHelp {
 
     private static void registerHelpOverride(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("help")
-            .executes(ctx -> showHelp(ctx.getSource(), "general"))
+            .executes(ctx -> showHelp(ctx.getSource(), "all"))
             .then(Commands.literal("general").executes(ctx -> showHelp(ctx.getSource(), "general")))
             .then(Commands.literal("teleportation").executes(ctx -> showHelp(ctx.getSource(), "teleportation")))
             .then(Commands.literal("lifesteal").executes(ctx -> showHelp(ctx.getSource(), "lifesteal")))
@@ -108,89 +108,134 @@ public final class SpawnAndHelp {
         return s.getEntity() == null || Permissions.has(s, Permissions.SPAWN_SET);
     }
 
-    /** Organized Season 2 help. Preserves the existing purple/blue text palette. */
+    /** Season 2 help: one command per chat line, with an exhaustive permission-aware default view. */
     private static int showHelp(CommandSourceStack s, String section) {
-        s.sendSuccess(() -> Component.literal("✦ CHILL ZONE SMP ✦  HELP 0.3.22  |  " + section.toUpperCase())
+        s.sendSuccess(() -> Component.literal("✦ CHILL ZONE SMP ✦  HELP  |  " + section.toUpperCase())
             .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), false);
+        if (section.equals("all")) {
+            sendHelpLines(s, "general");
+            sendHelpLines(s, "teleportation");
+            sendHelpLines(s, "lifesteal");
+            if (Permissions.has(s, Permissions.WARN)) sendHelpLines(s, "moderation");
+            if (Permissions.has(s, Permissions.STAFF_TELEPORT)) sendHelpLines(s, "admin");
+            if (canSetSpawn(s)) sendHelpLines(s, "owner");
+            sendHelpLine(s, "§7Tip: Use /help general, /help teleportation, /help lifesteal, /help moderation, /help admin, or /help owner to see a single category.");
+        } else {
+            sendHelpLines(s, section);
+        }
+        return 1;
+    }
+
+    /** Blue bold command, with a separate plain gray description on the same chat row. */
+    private static void sendHelpLine(CommandSourceStack s, String line) {
+        if (line.startsWith("§d──")) {
+            s.sendSuccess(() -> Component.literal(line.substring(2))
+                .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), false);
+            return;
+        }
+        if (line.startsWith("§7")) {
+            s.sendSuccess(() -> Component.literal(line.substring(2))
+                .withStyle(ChatFormatting.GRAY), false);
+            return;
+        }
+        int separator = line.indexOf(" — ");
+        if (separator > 0 && line.startsWith("/")) {
+            String command = line.substring(0, separator);
+            String description = line.substring(separator + 3);
+            s.sendSuccess(() -> Component.literal(command)
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .append(Component.literal(" — " + description).withStyle(ChatFormatting.GRAY)), false);
+            return;
+        }
+        s.sendSuccess(() -> Component.literal(line).withStyle(ChatFormatting.GRAY), false);
+    }
+
+    private static void sendHelpLines(CommandSourceStack s, String section) {
         String[] lines = switch (section) {
             case "teleportation" -> new String[] {
-                "§dTELEPORTATION  §7— Travel & saved locations",
+                "§d── TELEPORTATION ──",
                 "/spawn — Return to spawn (1-second delay)",
                 "/homes — Open your saved-home menu",
                 "/home <name> — Teleport to a saved home",
-                "/sethome <name> — Save a home | /delhome <name> — Remove one",
+                "/sethome <name> — Save a home",
+                "/delhome <name> — Remove a saved home",
                 "/tpa <player> — Request a teleport to another player",
                 "/tpahere <player> — Invite a player to teleport to you",
-                "/tpaccept — Accept | /tpdeny — Decline",
+                "/tpaccept — Accept a teleport request",
+                "/tpdeny — Decline a teleport request",
                 "§7Combat-tagged players cannot use teleport commands."
             };
             case "lifesteal" -> new String[] {
-                "§dPVP & LIFESTEAL  §7— Hearts & combat",
+                "§d── PVP & LIFESTEAL ──",
                 "/lifesteal hearts — Show how many hearts you have",
                 "/lifesteal list — Top 10 players by heart count",
                 "/lifesteal craftstatus — Heart crafting quota / countdown",
                 "/lifesteal recipe heart — See Heart recipe",
                 "/lifesteal recipe beacon — See Revive Beacon recipe",
                 "/withdraw <amount> — Withdraw hearts as items",
-                "/leaderboards — Open player statistics / rankings",
                 "§7Combat-tag timer and rules apply during PvP."
             };
             case "moderation" -> new String[] {
-                "§dMODERATOR COMMANDS  §7— Player safety",
-                "/warn <player> — Warn | /warnings <player> — Warning history",
-                "/mute <player> — Mute | /unmute <player> — Unmute",
-                "/freeze <player> — Freeze | /unfreeze <player> — Release",
+                "§d── MODERATOR COMMANDS ──",
+                "/warn <player> — Warn a player",
+                "/warnings <player> — View warning history",
+                "/mute <player> — Mute a player",
+                "/unmute <player> — Unmute a player",
+                "/freeze <player> — Freeze a player",
+                "/unfreeze <player> — Release a frozen player",
                 "/sus — Open investigation cases and evidence",
-                "/susclear <player> — Clear flags | /susback — Return",
+                "/susclear <player> — Clear suspicious activity flags",
+                "/susback — Return from an investigation",
                 "/punishments <player> — View moderation history"
             };
             case "admin" -> new String[] {
-                "§dADMIN COMMANDS  §7— Advanced moderation",
+                "§d── ADMIN COMMANDS ──",
                 "/vanish — Toggle staff vanish (requires Vanish permission)",
-                "/czban <player> — Ban | /czunban <player> — Unban",
-                "/tempban <player> — Temporary ban",
-                "/untempban <player> — Remove temporary ban",
-                "/tpto <player> — Staff teleport to player",
-                "/tphere <player> — Teleport player to staff",
+                "/czban <player> — Ban a player",
+                "/czunban <player> — Unban a player",
+                "/tempban <player> — Temporarily ban a player",
+                "/untempban <player> — Remove a temporary ban",
+                "/tpto <player> — Staff teleport to a player",
+                "/tphere <player> — Teleport a player to staff",
                 "/punishments <player> — Review punishment records",
                 "§7Moderator commands remain available to permitted admins."
             };
             case "owner" -> new String[] {
-                "§dOWNER COMMANDS  §7— Server configuration",
-                "/spawn set — Set spawn here | /spawn set create — Alias",
-                "/spawn set <x> <y> <z> — Set exact spawn coordinates",
-                "/server preparing — Prepare launch | /server start — Start",
-                "/end close / open — Control End access",
-                "/nether close / open — Control Nether access",
-                "/leaderboards reset confirm — Reset tracked leaderboard progress",
-                "/lifesteal admin menu — Open combat / Lifesteal settings",
-                "/lifesteal admin giveheart / giverevivebeacon — Grant items",
-                "/lifesteal admin sethearts / maxhearts — Heart controls",
+                "§d── OWNER COMMANDS ──",
+                "/spawn set — Set spawn at your position",
+                "/spawn set create — Alias for setting spawn",
+                "/spawn set <x> <y> <z> — Set spawn coordinates",
+                "/server preparing — Prepare the server launch",
+                "/server start — Start the server",
+                "/end close — Close End access",
+                "/end open — Open End access",
+                "/nether close — Close Nether access",
+                "/nether open — Open Nether access",
+                "/leaderboards reset confirm — Reset leaderboard progress",
+                "/lifesteal admin menu — Open Lifesteal settings",
+                "/lifesteal admin giveheart — Grant Heart items",
+                "/lifesteal admin giverevivebeacon — Grant Revive Beacons",
+                "/lifesteal admin sethearts — Set player hearts",
+                "/lifesteal admin maxhearts — Set maximum hearts",
                 "/lifesteal admin skip — Reset crafting quota",
-                "/lifesteal admin containers — Heart storage control",
-                "/lifesteal admin pvp / pvploss / naturalloss / deathbans",
-                "/lifesteal admin revive / combat status / reset CONFIRM"
+                "/lifesteal admin containers — Manage Heart storage",
+                "/lifesteal admin pvp — Configure PvP",
+                "/lifesteal admin pvploss — Configure PvP heart loss",
+                "/lifesteal admin naturalloss — Configure natural-death heart loss",
+                "/lifesteal admin deathbans — Configure death bans",
+                "/lifesteal admin revive — Configure revival",
+                "/lifesteal admin combat status — View combat status",
+                "/lifesteal admin reset CONFIRM — Reset Lifesteal data"
             };
             default -> new String[] {
-                "§dGENERAL  §7— Everyday player commands",
-                "/rules — Server rules | /shop — Open Shard shop",
-                "/leaderboards — Player rankings | /teams — Allied Teams",
-                "/homes — Saved homes | /home <name> — Visit a home",
-                "/sethome <name> — Save home | /delhome <name> — Delete",
-                "§dTELEPORTATION  §7— /help teleportation",
-                "§dPVP & LIFESTEAL  §7— /help lifesteal",
-                "/lifesteal hearts / list / craftstatus — Heart tools",
-                "/lifesteal recipe heart / recipe beacon — Recipes",
-                "/withdraw <amount> — Withdraw hearts into items",
-                "§dSTAFF HELP  §7— Based on your permissions",
-                "§b/help moderation §7| §b/help admin §7| §b/help owner",
-                "§7Use /help <section> for full commands. No separate Economy menu."
+                "§d── GENERAL COMMANDS ──",
+                "/rules — View the server rules",
+                "/shop — Open the Shard shop",
+                "/leaderboards — View player rankings",
+                "/teams — Open Allied Teams"
             };
         };
-        for (String line : lines) {
-            s.sendSuccess(() -> Component.literal(line).withStyle(ChatFormatting.AQUA), false);
-        }
-        return 1;
+        for (String line : lines) sendHelpLine(s, line);
     }
 
     private static int setAtPlayer(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
