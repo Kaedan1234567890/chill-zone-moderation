@@ -121,7 +121,7 @@ public final class ChillZoneModeration implements ModInitializer {
     @Override public void onInitialize() {
         config = ModerationConfig.load();
         store = ModerationStore.load();
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> ServerStateManager.load());
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> { ServerStateManager.load(); SpawnAndHelp.reinforceHelp(server); });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> ServerStateManager.save());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             SpawnAndHelp.register(dispatcher);

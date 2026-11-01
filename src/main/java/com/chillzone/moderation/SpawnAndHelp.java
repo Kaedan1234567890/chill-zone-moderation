@@ -75,6 +75,21 @@ public final class SpawnAndHelp {
                 .executes(ctx -> showHelp(ctx.getSource(), "admin")))
             .then(Commands.literal("owner").requires(SpawnAndHelp::canSetSpawn)
                 .executes(ctx -> showHelp(ctx.getSource(), "owner"))));
+        registerHelpOverride(dispatcher);
+    }
+
+
+    /** Re-register /help after other mods finish command registration.
+     * Brigadier CommandNode.addChild merges a new command execution handler into the
+     * existing root /help node, so our content takes precedence without changing
+     * unrelated commands, permission rules, or teleport/spawn logic.
+     */
+    public static void reinforceHelp(net.minecraft.server.MinecraftServer server) {
+        registerHelpOverride(server.getCommands().getDispatcher());
+        System.out.println("[Chill Zone Moderation 0.3.21] Registered expanded /help command list on live dispatcher");
+    }
+
+    private static void registerHelpOverride(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("help")
             .executes(ctx -> showHelp(ctx.getSource(), "general"))
             .then(Commands.literal("general").executes(ctx -> showHelp(ctx.getSource(), "general")))
@@ -95,7 +110,7 @@ public final class SpawnAndHelp {
 
     /** Detailed Season 2 command list. Does not modify any non-help feature. */
     private static int showHelp(CommandSourceStack s, String section) {
-        s.sendSuccess(() -> Component.literal("✦ CHILL ZONE SMP ✦  HELP 0.3.20  |  " + section.toUpperCase())
+        s.sendSuccess(() -> Component.literal("✦ CHILL ZONE SMP ✦  HELP 0.3.21 — UPDATED COMMANDS  |  " + section.toUpperCase())
             .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), false);
         String[] lines = switch (section) {
             case "teleportation" -> new String[] {
