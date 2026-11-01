@@ -86,7 +86,7 @@ public final class SpawnAndHelp {
      */
     public static void reinforceHelp(net.minecraft.server.MinecraftServer server) {
         registerHelpOverride(server.getCommands().getDispatcher());
-        System.out.println("[Chill Zone Moderation 0.3.21] Registered expanded /help command list on live dispatcher");
+        System.out.println("[Chill Zone Moderation 0.3.22] Registered expanded /help command list on live dispatcher");
     }
 
     private static void registerHelpOverride(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -108,74 +108,83 @@ public final class SpawnAndHelp {
         return s.getEntity() == null || Permissions.has(s, Permissions.SPAWN_SET);
     }
 
-    /** Detailed Season 2 command list. Does not modify any non-help feature. */
+    /** Organized Season 2 help. Preserves the existing purple/blue text palette. */
     private static int showHelp(CommandSourceStack s, String section) {
-        s.sendSuccess(() -> Component.literal("✦ CHILL ZONE SMP ✦  HELP 0.3.21 — UPDATED COMMANDS  |  " + section.toUpperCase())
+        s.sendSuccess(() -> Component.literal("✦ CHILL ZONE SMP ✦  HELP 0.3.22  |  " + section.toUpperCase())
             .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), false);
         String[] lines = switch (section) {
             case "teleportation" -> new String[] {
-                "/spawn — Go to spawn after a 1-second delay",
-                "/homes — Open saved homes menu",
-                "/home <name> — Go to a saved home",
-                "/sethome <name> — Create a new home",
-                "/delhome <name> — Delete a saved home",
-                "/tpa <player> — Ask to teleport to someone",
-                "/tpahere <player> — Ask someone to teleport to you",
-                "/tpaccept — Accept a request | /tpdeny — Deny it",
-                "Teleporting is blocked while combat-tagged"
+                "§dTELEPORTATION  §7— Travel & saved locations",
+                "/spawn — Return to spawn (1-second delay)",
+                "/homes — Open your saved-home menu",
+                "/home <name> — Teleport to a saved home",
+                "/sethome <name> — Save a home | /delhome <name> — Remove one",
+                "/tpa <player> — Request a teleport to another player",
+                "/tpahere <player> — Invite a player to teleport to you",
+                "/tpaccept — Accept | /tpdeny — Decline",
+                "§7Combat-tagged players cannot use teleport commands."
             };
             case "lifesteal" -> new String[] {
-                "/lifesteal hearts — Show your current hearts",
-                "/lifesteal list — Top 10 by hearts",
-                "/lifesteal craftstatus — Daily 3-Heart limit and timer",
-                "/lifesteal recipe heart — Heart crafting recipe",
-                "/lifesteal recipe beacon — Revive Beacon recipe",
-                "/withdraw <amount> — Turn hearts into Heart items",
-                "/leaderboards — Kills, deaths, blocks and other ranks"
+                "§dPVP & LIFESTEAL  §7— Hearts & combat",
+                "/lifesteal hearts — Show how many hearts you have",
+                "/lifesteal list — Top 10 players by heart count",
+                "/lifesteal craftstatus — Heart crafting quota / countdown",
+                "/lifesteal recipe heart — See Heart recipe",
+                "/lifesteal recipe beacon — See Revive Beacon recipe",
+                "/withdraw <amount> — Withdraw hearts as items",
+                "/leaderboards — Open player statistics / rankings",
+                "§7Combat-tag timer and rules apply during PvP."
             };
             case "moderation" -> new String[] {
-                "/warn <player> — Warn a player",
-                "/warnings <player> — View warning history",
-                "/mute <player> / /unmute <player> — Control mutes",
-                "/freeze <player> / /unfreeze <player> — Freeze controls",
-                "/sus — Open suspicious activity evidence",
-                "/susclear <player> — Clear evidence | /susback — Return",
-                "/punishments <player> — Punishment history"
+                "§dMODERATOR COMMANDS  §7— Player safety",
+                "/warn <player> — Warn | /warnings <player> — Warning history",
+                "/mute <player> — Mute | /unmute <player> — Unmute",
+                "/freeze <player> — Freeze | /unfreeze <player> — Release",
+                "/sus — Open investigation cases and evidence",
+                "/susclear <player> — Clear flags | /susback — Return",
+                "/punishments <player> — View moderation history"
             };
             case "admin" -> new String[] {
-                "/vanish — Staff invisibility (separate Vanish permission)",
-                "/czban <player> / /czunban <player> — Permanent bans",
-                "/tempban <player> / /untempban <player> — Temporary bans",
+                "§dADMIN COMMANDS  §7— Advanced moderation",
+                "/vanish — Toggle staff vanish (requires Vanish permission)",
+                "/czban <player> — Ban | /czunban <player> — Unban",
+                "/tempban <player> — Temporary ban",
+                "/untempban <player> — Remove temporary ban",
+                "/tpto <player> — Staff teleport to player",
+                "/tphere <player> — Teleport player to staff",
                 "/punishments <player> — Review punishment records",
-                "/tpto <player> / /tphere <player> — Staff teleportation"
+                "§7Moderator commands remain available to permitted admins."
             };
             case "owner" -> new String[] {
-                "/spawn set — Set spawn at your location",
-                "/spawn set create — Same as /spawn set",
-                "/spawn set <x> <y> <z> — Set spawn by coordinates",
-                "/server preparing / /server start — Season launch controls",
-                "/end open / /end close — Control End travel",
-                "/nether open / /nether close — Control Nether travel",
-                "/leaderboards reset confirm — Reset leaderboard progress",
-                "/lifesteal admin menu — Open combat/Lifesteal settings",
-                "/lifesteal admin giveheart / giverevivebeacon — Give items",
-                "/lifesteal admin sethearts / maxhearts — Adjust hearts",
+                "§dOWNER COMMANDS  §7— Server configuration",
+                "/spawn set — Set spawn here | /spawn set create — Alias",
+                "/spawn set <x> <y> <z> — Set exact spawn coordinates",
+                "/server preparing — Prepare launch | /server start — Start",
+                "/end close / open — Control End access",
+                "/nether close / open — Control Nether access",
+                "/leaderboards reset confirm — Reset tracked leaderboard progress",
+                "/lifesteal admin menu — Open combat / Lifesteal settings",
+                "/lifesteal admin giveheart / giverevivebeacon — Grant items",
+                "/lifesteal admin sethearts / maxhearts — Heart controls",
                 "/lifesteal admin skip — Reset crafting quota",
-                "/lifesteal admin containers — Heart storage rules",
+                "/lifesteal admin containers — Heart storage control",
                 "/lifesteal admin pvp / pvploss / naturalloss / deathbans",
                 "/lifesteal admin revive / combat status / reset CONFIRM"
             };
             default -> new String[] {
-                "/rules — Server rules | /shop — Shard shop",
-                "/leaderboards — Player rankings",
-                "/homes / /home / /sethome / /delhome — Saved homes",
-                "/spawn / /tpa / /tpahere / /tpaccept / /tpdeny",
-                "/lifesteal hearts / list / craftstatus — Heart information",
+                "§dGENERAL  §7— Everyday player commands",
+                "/rules — Server rules | /shop — Open Shard shop",
+                "/leaderboards — Player rankings | /teams — Allied Teams",
+                "/homes — Saved homes | /home <name> — Visit a home",
+                "/sethome <name> — Save home | /delhome <name> — Delete",
+                "§dTELEPORTATION  §7— /help teleportation",
+                "§dPVP & LIFESTEAL  §7— /help lifesteal",
+                "/lifesteal hearts / list / craftstatus — Heart tools",
                 "/lifesteal recipe heart / recipe beacon — Recipes",
-                "/withdraw <amount> — Withdraw a Heart item",
-                "/teams — Allied Teams, if enabled",
-                "More: /czhelp teleportation | /czhelp lifesteal",
-                "Staff: /czhelp moderation | admin | owner (by permission)"
+                "/withdraw <amount> — Withdraw hearts into items",
+                "§dSTAFF HELP  §7— Based on your permissions",
+                "§b/help moderation §7| §b/help admin §7| §b/help owner",
+                "§7Use /help <section> for full commands. No separate Economy menu."
             };
         };
         for (String line : lines) {
