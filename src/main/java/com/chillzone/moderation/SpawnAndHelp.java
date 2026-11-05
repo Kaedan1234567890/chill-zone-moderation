@@ -88,7 +88,7 @@ public final class SpawnAndHelp {
     public static void reinforceHelp(net.minecraft.server.MinecraftServer server) {
         registerHelpOverride(server.getCommands().getDispatcher());
         ServerRules.register(server.getCommands().getDispatcher());
-        System.out.println("[Chill Zone Moderation 0.3.22] Registered expanded /help command list on live dispatcher");
+        System.out.println("[Chill Zone Moderation 0.3.28] Registered /rules and /czrules (68 rules) on live dispatcher; legacy /rules screens indicate another mod or old JAR");
     }
 
     private static void registerHelpOverride(CommandDispatcher<CommandSourceStack> dispatcher) {

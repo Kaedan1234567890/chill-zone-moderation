@@ -95,8 +95,18 @@ public final class ServerRules {
         })
     };
 
+    /** Register the standard command and an unambiguous diagnostic fallback.
+     * Some installed mods also register /rules. Brigadier merges command roots,
+     * so another mod can override the /rules execution handler depending on load order.
+     * /czrules is a unique alias owned by this mod for verification and safe fallback.
+     */
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        var root = Commands.literal("rules")
+        registerNamed(dispatcher, "rules");
+        registerNamed(dispatcher, "czrules");
+    }
+
+    private static void registerNamed(CommandDispatcher<CommandSourceStack> dispatcher, String name) {
+        var root = Commands.literal(name)
             .executes(ctx -> showOverview(ctx.getSource()))
             .then(Commands.literal("all").executes(ctx -> showAll(ctx.getSource())));
         for (Section section : SECTIONS) {
@@ -106,13 +116,14 @@ public final class ServerRules {
     }
 
     private static int showOverview(CommandSourceStack source) {
-        title(source, "CHILL ZONE SMP - SERVER RULES");
+        title(source, "CHILL ZONE SMP - SERVER RULES (68 RULES)");
         normal(source, "Competitive Lifesteal survival. Normal PvP, raiding and rivalries are allowed; cheating, spawn abuse and harassment are not.");
         for (Section section : SECTIONS) {
             title(source, section.title());
             normal(source, "Use /rules " + section.id() + " to read this section.");
         }
-        normal(source, "Use /rules all for all 68 rules. Rules apply to Java, Bedrock, teams and alternate accounts.");
+        normal(source, "Use /rules all for all 68 rules. If another mod owns /rules, use /czrules and /czrules all.");
+        normal(source, "Rules apply to Java, Bedrock, teams and alternate accounts.");
         return 1;
     }
 

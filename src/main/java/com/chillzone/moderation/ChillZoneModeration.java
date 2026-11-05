@@ -28,33 +28,57 @@ public final class ChillZoneModeration implements ModInitializer {
     private record FrozenAnchor(ServerLevel level, double x, double y, double z, float yaw, float pitch) {}
 
     private record Preset(String id, String display, String duration) {}
-    private record HackType(String id, String display, String addedDuration) {}
-
-    // Preset punishments. "hacking" and "other" are handled as special branches below.
+    // The same catalogue powers /tempban and /ban. Durations only apply to /tempban.
     private static final List<Preset> PRESETS = List.of(
-        new Preset("xray", "X-Ray", "3d"),
-        new Preset("duping", "Duping / Item Exploits", "2d"),
-        new Preset("severe_exploiting", "Severe Exploiting", "14d"),
-        new Preset("major_griefing", "Major Griefing", "2d"),
+        new Preset("spawn_killing", "Spawn Killing", "8h"),
+        new Preset("naked_killing", "Naked Killing", "8h"),
+        new Preset("spawn_camping", "Spawn Camping", "12h"),
+        new Preset("new_player_hunting", "New Player Hunting", "12h"),
+        new Preset("teleport_trapping", "Teleport Trapping", "1d"),
+        new Preset("combat_logging", "Combat Logging", "12h"),
+        new Preset("kill_farming", "Kill Farming", "2d"),
+        new Preset("heart_farming", "Heart Farming", "3d"),
         new Preset("minor_griefing", "Minor Griefing", "12h"),
-        new Preset("spawn_killing", "Spawn Killing", "5h"),
+        new Preset("major_griefing", "Major Griefing", "2d"),
         new Preset("event_disruption", "Event Disruption", "5h"),
-        new Preset("harassment", "Harassment", "1h"),
-        new Preset("ban_evasion", "Ban Evasion", "14d")
+        new Preset("harassment", "Harassment", "1d"),
+        new Preset("ban_evasion", "Ban Evasion", "14d"),
+        new Preset("punishment_evasion", "Punishment Evasion", "14d"),
+        new Preset("duping", "Duping / Item Exploits", "7d"),
+        new Preset("severe_exploiting", "Severe Exploiting", "14d"),
+        new Preset("economy_exploiting", "Economy Exploiting", "3d"),
+        new Preset("afk_farming", "AFK Farming", "12h"),
+        new Preset("lag_machine", "Lag Machine", "7d"),
+        new Preset("staff_impersonation", "Staff Impersonation", "2d"),
+        new Preset("hacking", "Hacking (unspecified)", "7d"),
+        new Preset("freecam", "Freecam", "7d"),
+        new Preset("tweakeroo_freecam", "Tweakeroo Free Camera", "7d"),
+        new Preset("player_esp", "Player ESP", "7d"),
+        new Preset("chest_esp", "Chest ESP", "7d"),
+        new Preset("entity_esp", "Entity ESP", "7d"),
+        new Preset("xray", "X-Ray", "7d"),
+        new Preset("killaura", "KillAura", "14d"),
+        new Preset("reach", "Reach Hacks", "14d"),
+        new Preset("aimbot", "Aimbot", "14d"),
+        new Preset("autocrystal", "AutoCrystal", "14d"),
+        new Preset("autototem", "AutoTotem", "7d"),
+        new Preset("fly", "Fly Hacks", "12d"),
+        new Preset("speed", "Speed / Movement Hacks", "12d"),
+        new Preset("phase_noclip", "Phase / NoClip", "14d"),
+        new Preset("jesus_mode", "Jesus Mode", "12d"),
+        new Preset("scaffold", "Scaffold", "7d"),
+        new Preset("seed_cracking", "Seed Cracking", "7d"),
+        new Preset("illegal_modifications", "Illegal Modifications", "7d"),
+        new Preset("other_hack", "Other Hack", "7d"),
+        // Compatibility with older commands using former hacking IDs.
+        new Preset("flying", "Fly Hacks", "12d"),
+        new Preset("speed_movement", "Speed / Movement Hacks", "12d"),
+        new Preset("combat", "Combat Hacks", "14d")
     );
 
-    // Hacking always starts at 7 days. Every selected hack subtype adds its own time.
-    // Current agreed subtype increment is +5 days each.
-    private static final List<HackType> HACK_TYPES = List.of(
-        new HackType("flying", "Fly Hacks", "5d"),
-        new HackType("speed_movement", "Speed / Movement Hacks", "5d"),
-        new HackType("combat", "Combat Hacks", "5d"),
-        new HackType("phase_noclip", "Phase / NoClip", "5d"),
-        new HackType("jesus_mode", "Jesus Mode (Walking on Water)", "5d"),
-        new HackType("duping", "Duping", "5d"),
-        new HackType("xray", "X-Ray", "5d"),
-        new HackType("other", "Other Hack", "5d")
-    );
+    private static Preset findPreset(String id) {
+        return PRESETS.stream().filter(p -> p.id().equalsIgnoreCase(id)).findFirst().orElse(null);
+    }
 
     private static final SuggestionProvider<CommandSourceStack> KNOWN_PLAYERS = (ctx, b) -> {
         for (PlayerResolver.CachedPlayer p : PlayerResolver.knownPlayers(ctx.getSource().getServer())) {
@@ -89,32 +113,42 @@ public final class ChillZoneModeration implements ModInitializer {
         return b.buildFuture();
     };
     private static final SuggestionProvider<CommandSourceStack> OFFENCES = (ctx, b) -> {
-        b.suggest("hacking", Component.literal("[7 Days base] + selected hack time"));
-        for (Preset p : PRESETS) b.suggest(p.id(), Component.literal("[" + prettyDuration(p.duration()) + "] " + p.display()));
-        b.suggest("other", Component.literal("[Custom: 1 minute to 30 years]"));
+        for (Preset p : PRESETS) {
+            if (p.id().startsWith(b.getRemaining().toLowerCase(Locale.ROOT)))
+                b.suggest(p.id(), Component.literal("[" + prettyDuration(p.duration()) + "] " + p.display()));
+        }
+        if ("other".startsWith(b.getRemaining().toLowerCase(Locale.ROOT)))
+            b.suggest("other", Component.literal("[Custom duration + reason]"));
         return b.buildFuture();
     };
     private static final SuggestionProvider<CommandSourceStack> CONDITIONAL_DETAILS = (ctx, b) -> {
         String offence;
         try { offence = StringArgumentType.getString(ctx, "offence"); } catch (Exception e) { return b.buildFuture(); }
         if (offence.equalsIgnoreCase("hacking")) {
-            for (HackType h : HACK_TYPES) b.suggest(h.id(), Component.literal("[+" + prettyDuration(h.addedDuration()) + "] " + h.display()));
-            b.suggest("flying,speed_movement");
-            b.suggest("flying,speed_movement,phase_noclip");
-            b.suggest("flying,speed_movement,jesus_mode");
-            b.suggest("flying,speed_movement,phase_noclip,jesus_mode");
-            b.suggest("flying,phase_noclip,jesus_mode");
+            for (Preset p : PRESETS) if (isHackPreset(p.id()))
+                b.suggest(p.id(), Component.literal("[" + prettyDuration(p.duration()) + "] " + p.display()));
         } else if (offence.equalsIgnoreCase("other")) {
-            // Examples only; any custom duration from 1 minute through 30 years is accepted.
-            b.suggest("1m", Component.literal("minimum; then type your custom reason"));
-            b.suggest("1h", Component.literal("example; then type your custom reason"));
-            b.suggest("1d", Component.literal("example; then type your custom reason"));
-            b.suggest("1y", Component.literal("example; then type your custom reason"));
+            b.suggest("1m", Component.literal("Minimum; then enter a reason"));
+            b.suggest("1h", Component.literal("Example; then enter a reason"));
+            b.suggest("1d", Component.literal("Example; then enter a reason"));
+            b.suggest("1y", Component.literal("Example; then enter a reason"));
         }
         return b.buildFuture();
     };
+    private static boolean isHackPreset(String id) {
+        return switch (id) {
+            case "freecam", "tweakeroo_freecam", "player_esp", "chest_esp", "entity_esp",
+                 "xray", "killaura", "reach", "aimbot", "autocrystal", "autototem",
+                 "fly", "speed", "phase_noclip", "jesus_mode", "scaffold", "seed_cracking",
+                 "illegal_modifications", "other_hack", "flying", "speed_movement", "combat" -> true;
+            default -> false;
+        };
+    }
     private static final SuggestionProvider<CommandSourceStack> BAN_REASONS = (ctx, b) -> {
-        for (String s : List.of("Hacking", "Flying / Movement Hacks", "X-Ray", "Combat Hacks", "Jesus Mode (Walking on Water)", "Duping / Item Exploits", "Major Griefing", "Minor Griefing", "Spawn Killing", "Event Disruption", "Harassment", "Ban Evasion", "Severe Exploiting", "Other")) b.suggest(s);
+        String remaining = b.getRemaining().toLowerCase(Locale.ROOT);
+        for (Preset p : PRESETS) if (p.id().startsWith(remaining))
+            b.suggest(p.id(), Component.literal("[Permanent] " + p.display()));
+        if ("other".startsWith(remaining)) b.suggest("other", Component.literal("[Permanent] Custom reason follows"));
         return b.buildFuture();
     };
 
@@ -369,7 +403,35 @@ public final class ChillZoneModeration implements ModInitializer {
         return 1;
     }
 
-    private static void registerBan(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d,String root){ d.register(Commands.literal(root).requires(s->Permissions.has(s,Permissions.BAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(KNOWN_PLAYERS).then(Commands.argument("reason",StringArgumentType.greedyString()).suggests(BAN_REASONS).executes(ctx->{ServerPlayer staff=ctx.getSource().getPlayerOrException();var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;String reason=StringArgumentType.getString(ctx,"reason");var r=store.getOrCreate(t.uuid(),t.name());var b=new PunishmentRecord.BanEntry();b.reason=reason;b.staff=staff.getGameProfile().name();b.issuedAt=System.currentTimeMillis();b.expiresAt=0;r.ban=b;store.save();if(t.onlinePlayer()!=null)t.onlinePlayer().connection.disconnect(banMessage(r));ctx.getSource().sendSuccess(()->Component.literal("Permanently banned "+t.name()+". Reason: "+reason),false);return 1;})))); }
+    private static void registerBan(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d, String root) {
+        d.register(Commands.literal(root).requires(s -> Permissions.has(s, Permissions.BAN))
+            .then(Commands.argument("player", StringArgumentType.word()).suggests(KNOWN_PLAYERS)
+                .then(Commands.argument("reason", StringArgumentType.greedyString()).suggests(BAN_REASONS)
+                    .executes(ctx -> permanentBan(ctx.getSource(), StringArgumentType.getString(ctx,"player"), StringArgumentType.getString(ctx,"reason"))))));
+    }
+    private static int permanentBan(CommandSourceStack src, String player, String rawReason) {
+        String input = rawReason.trim();
+        if (input.isEmpty()) { src.sendFailure(Component.literal("Provide a ban preset or custom reason.")); return 0; }
+        Preset preset = findPreset(input);
+        String reason;
+        if (preset != null) reason = preset.display();
+        else if (input.equalsIgnoreCase("other")) { src.sendFailure(Component.literal("Use /ban " + player + " other <custom reason>")); return 0; }
+        else if (input.toLowerCase(Locale.ROOT).startsWith("other ")) reason = input.substring(6).trim();
+        else reason = input; // Preserve existing free-form /ban and /czban reasons.
+        if (reason.isBlank()) { src.sendFailure(Component.literal("Custom ban reason cannot be empty.")); return 0; }
+        ServerPlayer staff;
+        try { staff = src.getPlayerOrException(); }
+        catch (Exception e) { src.sendFailure(Component.literal("This command must be run by a player moderator.")); return 0; }
+        var t = resolve(src.getServer(), player, src); if (t == null) return 0;
+        var r = store.getOrCreate(t.uuid(), t.name());
+        var entry = new PunishmentRecord.BanEntry();
+        entry.reason = reason; entry.staff = staff.getGameProfile().name();
+        entry.issuedAt = System.currentTimeMillis(); entry.expiresAt = 0;
+        r.ban = entry; store.save();
+        if (t.onlinePlayer() != null) t.onlinePlayer().connection.disconnect(banMessage(r));
+        src.sendSuccess(() -> Component.literal("Permanently banned " + t.name() + ". Reason: " + reason), false);
+        return 1;
+    }
     private static void registerUnban(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d,String root){d.register(Commands.literal(root).requires(s->Permissions.has(s,Permissions.UNBAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(BANNED_PLAYERS).executes(ctx->{var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;var r=store.get(t.uuid());if(r!=null){r.ban=null;store.save();}ctx.getSource().sendSuccess(()->Component.literal("Unbanned "+t.name()+"."),false);return 1;})));}
     private static void registerUntempban(com.mojang.brigadier.CommandDispatcher<CommandSourceStack> d){d.register(Commands.literal("untempban").requires(s->Permissions.has(s,Permissions.UNBAN)).then(Commands.argument("player",StringArgumentType.word()).suggests(BANNED_PLAYERS).executes(ctx->{var t=resolve(ctx.getSource().getServer(),StringArgumentType.getString(ctx,"player"),ctx.getSource());if(t==null)return 0;var r=store.get(t.uuid());if(r==null||r.ban==null){ctx.getSource().sendFailure(Component.literal(t.name()+" is not currently banned."));return 0;}if(r.ban.expiresAt==0){ctx.getSource().sendFailure(Component.literal(t.name()+" has a permanent ban. Use /unban instead."));return 0;}r.ban=null;store.save();ctx.getSource().sendSuccess(()->Component.literal("Removed temporary ban for "+t.name()+"."),false);return 1;})));}
 
@@ -403,41 +465,46 @@ public final class ChillZoneModeration implements ModInitializer {
         src.sendSuccess(() -> Component.literal("Unmuted " + t.name() + "."), false); return 1;
     }
 
-    private static int presetTempban(CommandSourceStack src,String player,String offence,String details){
-        if(offence.equalsIgnoreCase("hacking")) return issueTempban(src,player,"7d","Hacking");
-        if(offence.equalsIgnoreCase("other")){src.sendFailure(Component.literal("Custom format: /tempban "+player+" other <duration> <reason>  (1m minimum, 30y maximum)"));return 0;}
-        Preset p=PRESETS.stream().filter(x->x.id().equalsIgnoreCase(offence)).findFirst().orElse(null);if(p==null){src.sendFailure(Component.literal("Unknown offence. Choose a suggested offence or 'other'."));return 0;}
-        return issueTempban(src,player,p.duration(),p.display());
+    private static int presetTempban(CommandSourceStack src, String player, String offence, String ignored) {
+        if (offence.equalsIgnoreCase("other")) {
+            src.sendFailure(Component.literal("Use /tempban " + player + " other <duration> <reason>")); return 0;
+        }
+        Preset p = findPreset(offence);
+        if (p == null) { src.sendFailure(Component.literal("Unknown offence. Select a suggested preset or 'other'.")); return 0; }
+        return issueTempban(src, player, p.duration(), p.display());
     }
-    private static int tempbanWithDetails(CommandSourceStack src,String player,String offence,String details){
-        if(offence.equalsIgnoreCase("hacking")){
-            String cleaned=details.trim();
-            if(cleaned.isEmpty()) return issueTempban(src,player,"7d","Hacking");
-            String[] ids=cleaned.split("[,\\s]+");
-            LinkedHashSet<String> unique=new LinkedHashSet<>();
-            List<String> names=new ArrayList<>();
-            long total=TimeParser.parseMillis("7d");
-            for(String raw:ids){
-                if(raw.isBlank()) continue;
-                String id=raw.toLowerCase(Locale.ROOT);
-                if(!unique.add(id)) continue;
-                HackType h=HACK_TYPES.stream().filter(x->x.id().equalsIgnoreCase(id)).findFirst().orElse(null);
-                if(h==null){src.sendFailure(Component.literal("Unknown hack type: "+raw+". Choose one of the hacking suggestions."));return 0;}
-                names.add(h.display()); total += TimeParser.parseMillis(h.addedDuration());
+    private static int tempbanWithDetails(CommandSourceStack src, String player, String offence, String details) {
+        if (offence.equalsIgnoreCase("other")) {
+            String cleaned = details.trim();
+            int sp = cleaned.indexOf(' ');
+            if (sp < 1) { src.sendFailure(Component.literal("Use /tempban " + player + " other <duration> <reason>")); return 0; }
+            String durationText = cleaned.substring(0, sp);
+            String reason = cleaned.substring(sp + 1).trim();
+            long ms = TimeParser.parseMillis(durationText);
+            if (reason.isEmpty() || ms < 60_000L || ms > TimeParser.parseMillis("30y")) {
+                src.sendFailure(Component.literal("Custom tempbans need a reason and duration between 1m and 30y.")); return 0;
             }
-            if(names.isEmpty()) return issueTempban(src,player,"7d","Hacking");
-            return issueTempbanMillis(src,player,total,"Hacking - "+String.join(", ",names));
+            return issueTempbanMillis(src, player, ms, reason);
         }
-        if(offence.equalsIgnoreCase("other")){
-            int sp=details.indexOf(' ');if(sp<1){src.sendFailure(Component.literal("Use: /tempban "+player+" other <duration> <reason>"));return 0;}
-            String dur=details.substring(0,sp).trim();String reason=details.substring(sp+1).trim();
-            if(reason.isEmpty()){src.sendFailure(Component.literal("Please provide a custom reason."));return 0;}
-            long ms=TimeParser.parseMillis(dur);
-            long min=60_000L,max=TimeParser.parseMillis("30y");
-            if(ms<min||ms>max){src.sendFailure(Component.literal("Custom temp bans must be between 1 minute and 30 years."));return 0;}
-            return issueTempbanMillis(src,player,ms,reason);
+        // Backwards compatible with /tempban <player> hacking <one-or-more-hack-types>.
+        // Multiple confirmed categories use the longest preset duration, not additive penalties.
+        if (offence.equalsIgnoreCase("hacking")) {
+            LinkedHashMap<String, Preset> chosen = new LinkedHashMap<>();
+            long longest = TimeParser.parseMillis("7d");
+            for (String raw : details.trim().split("[,\\s]+")) {
+                if (raw.isBlank()) continue;
+                Preset p = findPreset(raw);
+                if (p == null || !isHackPreset(p.id())) {
+                    src.sendFailure(Component.literal("Unknown hacking type: " + raw)); return 0;
+                }
+                chosen.putIfAbsent(p.id(), p);
+                longest = Math.max(longest, TimeParser.parseMillis(p.duration()));
+            }
+            if (chosen.isEmpty()) return issueTempban(src, player, "7d", "Hacking (unspecified)");
+            String reason = "Hacking - " + String.join(", ", chosen.values().stream().map(Preset::display).toList());
+            return issueTempbanMillis(src, player, longest, reason);
         }
-        src.sendFailure(Component.literal("That preset is complete after the offence. Extra hack/custom details are only available for 'hacking' or 'other'."));
+        src.sendFailure(Component.literal("This preset is complete; extra details are for 'hacking' or 'other' only."));
         return 0;
     }
     private static int issueTempban(CommandSourceStack src,String player,String durationText,String reason){
