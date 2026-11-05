@@ -37,7 +37,6 @@ public final class SusMenu extends AbstractContainerMenu {
     private static final int PLAYER_SLOTS_PER_PAGE = 45; // later pages use top five rows
     private static final int FIRST_PAGE_OLD_SLOTS = 18;
     private static final int RECENT_SLOTS = 18;
-    private static final long RECENT_WINDOW_MS = 30L * 60L * 1000L;
     private static final int[] LOCATION_SLOTS = {
         27, 28, 29, 30, 31, 32, 33, 34, 35,
         36, 37, 38, 39, 40, 41, 42, 43, 44
@@ -143,6 +142,11 @@ public final class SusMenu extends AbstractContainerMenu {
         container.setItem(49, named(new ItemStack(Items.ARROW), Component.literal("Back to SUS List")));
     }
 
+    private static boolean isUnreviewed(SusRecord record) {
+        return record != null && record.hasActivity()
+            && record.lastActivityEpochMs() > record.reviewedAtEpochMs;
+    }
+
     private void buildList() {
         List<SusRecord> suspects = new ArrayList<>();
         for (SusRecord r : store.all()) {
@@ -150,12 +154,13 @@ public final class SusMenu extends AbstractContainerMenu {
         }
 
         suspects.sort(Comparator.comparingLong(SusRecord::lastActivityEpochMs).reversed());
-        long recentCutoff = System.currentTimeMillis() - RECENT_WINDOW_MS;
 
         List<SusRecord> recent = new ArrayList<>();
         List<SusRecord> older = new ArrayList<>();
         for (SusRecord r : suspects) {
-            if (r.lastActivityEpochMs() >= recentCutoff && r.lastActivityEpochMs() > r.reviewedAtEpochMs && recent.size() < RECENT_SLOTS) recent.add(r);
+            // A case remains unreviewed until staff explicitly marks it viewed.
+            // Do not expire Recent after a fixed time or just by opening its details.
+            if (isUnreviewed(r) && recent.size() < RECENT_SLOTS) recent.add(r);
             else older.add(r);
         }
 
@@ -174,7 +179,7 @@ public final class SusMenu extends AbstractContainerMenu {
 
             int count = Math.min(FIRST_PAGE_OLD_SLOTS, older.size());
             for (int i = 0; i < count; i++) {
-                putPlayerHead(27 + i, older.get(i), false);
+                putPlayerHead(27 + i, older.get(i), isUnreviewed(older.get(i)));
             }
 
             if (recent.isEmpty() && older.isEmpty()) {
@@ -188,7 +193,7 @@ public final class SusMenu extends AbstractContainerMenu {
             int from = FIRST_PAGE_OLD_SLOTS + (safePage - 1) * PLAYER_SLOTS_PER_PAGE;
             int to = Math.min(older.size(), from + PLAYER_SLOTS_PER_PAGE);
             for (int i = from; i < to; i++) {
-                putPlayerHead(i - from, older.get(i), false);
+                putPlayerHead(i - from, older.get(i), isUnreviewed(older.get(i)));
             }
         }
 
@@ -199,7 +204,7 @@ public final class SusMenu extends AbstractContainerMenu {
         ItemStack info = named(new ItemStack(Items.BOOK), Component.literal("SUS - Page " + (safePage + 1) + "/" + pageCount));
         info.set(DataComponents.LORE, new ItemLore(List.of(
             Component.literal(safePage == 0 ? "Rows 1-2: recent flagged cases" : "Older SUS cases"),
-            Component.literal(safePage == 0 ? "Rows 4-5: reviewed / older cases" : "Top 5 rows: older cases"),
+            Component.literal(safePage == 0 ? "Rows 4-5: older cases / overflow" : "Top 5 rows: older cases / recent overflow"),
             Component.literal("Player heads use the suspect's skin/profile."),
             Component.literal("Click a player to inspect their evidence.")
         )));
@@ -299,7 +304,7 @@ public final class SusMenu extends AbstractContainerMenu {
             }
         }
 
-        if (!savedDetail && r != null && r.hasActivity() && Permissions.has(viewer, Permissions.VIEW)) {
+        if (!savedDetail && isUnreviewed(r) && Permissions.has(viewer, Permissions.VIEW)) {
             ItemStack reviewed = named(new ItemStack(Items.EMERALD), Component.literal("Mark Case Viewed"));
             reviewed.set(DataComponents.LORE, new ItemLore(List.of(
                 Component.literal("Move this case from Recent to Older."),
@@ -549,7 +554,8 @@ public final class SusMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (!savedDetail && slotId == 47 && Permissions.has(viewer, Permissions.VIEW)) {
+        if (!savedDetail && slotId == 47 && Permissions.has(viewer, Permissions.VIEW)
+            && isUnreviewed(store.get(focused))) {
             store.markReviewed(focused);
             store.save(viewer.level().getServer());
             viewer.sendSystemMessage(Component.literal("Marked SUS case reviewed. Evidence remains saved."));
