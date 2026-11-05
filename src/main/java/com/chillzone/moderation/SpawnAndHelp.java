@@ -76,6 +76,7 @@ public final class SpawnAndHelp {
             .then(Commands.literal("owner").requires(SpawnAndHelp::canSetSpawn)
                 .executes(ctx -> showHelp(ctx.getSource(), "owner"))));
         registerHelpOverride(dispatcher);
+        ServerRules.register(dispatcher);
     }
 
 
@@ -86,6 +87,7 @@ public final class SpawnAndHelp {
      */
     public static void reinforceHelp(net.minecraft.server.MinecraftServer server) {
         registerHelpOverride(server.getCommands().getDispatcher());
+        ServerRules.register(server.getCommands().getDispatcher());
         System.out.println("[Chill Zone Moderation 0.3.22] Registered expanded /help command list on live dispatcher");
     }
 
