@@ -123,7 +123,7 @@ public final class ServerRules {
             final int last = end;
             var link = Component.literal("/rules " + section.id() + " - " + section.title())
                 .withStyle(style -> style.withColor(ChatFormatting.AQUA)
-                    .withHoverEvent(new HoverEvent.ShowText(Component.literal("Rules " + first + " to " + last)))));
+                    .withHoverEvent(new HoverEvent.ShowText(Component.literal("Rules " + first + " to " + last))));
             send(source, link);
             start = end + 1;
         }
