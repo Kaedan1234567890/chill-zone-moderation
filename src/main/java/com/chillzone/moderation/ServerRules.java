@@ -32,7 +32,6 @@ public final class ServerRules {
             new Rule("No ESP", "No player, chest, entity, or resource ESP, tracers, radar, or wallhacks that reveal information through blocks."),
             new Rule("No Combat Hacks", "No KillAura, reach, aim assist, triggerbots, auto-totem exploits, or unfair combat assistance."),
             new Rule("No Hacked Clients", "No hacked clients, flight, speed, anti-knockback, or prohibited client features even when disguised as other mods."),
-            new Rule("No Automated Gameplay", "No auto-clicking, auto-fishing, auto-farming, auto-mining, auto-fighting, or AFK movement scripts that play for you. Ordinary vanilla farms are allowed."),
             new Rule("No Exploit Duplication", "No duplication, packet, chunk, bedrock, or other bugs used to gain unfair items, access, or advantages. Rail, carpet, and string dupers are permitted exceptions."),
             new Rule("No Bypassing Server Security", "Do not bypass anti-cheat, X-ray protection, bans, identity checks, or moderation systems."),
             new Rule("No Sharing Cheats", "Do not distribute cheat tools, downloads, or instructions intended for cheating on the server."),
@@ -54,7 +53,7 @@ public final class ServerRules {
         new Section("spawn", "SPAWN AND PLAYER PROTECTION", new Rule[] {
             new Rule("No Spawn Killing", "Do not attack players arriving at spawn or before they finish loading and regain control."),
             new Rule("No Spawn Camping", "Do not wait at spawn to immediately attack arrivals. Allow about 90 seconds before initiating PvP against an armored player who remains there; mutually agreed fights may begin sooner. This never overrides no naked killing."),
-            new Rule("No Naked Killing", "Do not attack a player wearing zero armor pieces unless they repeatedly attack you first. You may defend yourself if attacked."),
+            new Rule("No Naked Killing", "Do not attack players wearing no armor. If they equip at least three of the four armor pieces, you may initiate PvP. You may also defend yourself if an unarmored player attacks you first."),
             new Rule("No Spawn Traps", "No traps at spawn or arrival points, including indirect hazards such as lava, TNT, mobs, or fall traps."),
             new Rule("No Immediate TP Traps", "Do not lure a player through /tpa, invitations, or similar teleports into a trap that kills or harms them immediately (roughly within 5-10 seconds). A later betrayal after they have had a real chance to leave is not automatically TP trapping."),
             new Rule("No Killing While Loading", "Do not exploit a visibly frozen, reconnecting, or unloaded player. If a crash causes a loss, submit proof such as a recording for staff review."),
